@@ -17,7 +17,8 @@ def login():
 @router.post("/register")
 def register(user: user.User, db: Session = Depends(get_db)):
     print(user)
-    u = UserTable(name=user.name, email=user.email, password=user.password)
+    u = UserTable(fisrt_name=user.first_name,last_name=user.last_name, email=user.email, password=user.password, profile_img = user.profile_img)
+    # Hash password and add password and salt separately
     db.add(u)
     db.commit()
     db.refresh(u)
