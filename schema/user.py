@@ -6,7 +6,10 @@ from sqlalchemy import Column, Integer, String
 class User(db.Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    email = Column(String, unique=True)
+    user_id = Column(Integer, primary_key=True, index=True)
+    email_id = Column(String, unique=True)
+    first_name = Column(String)
+    last_name = Column(String)
     password = Column(String)
+    salt = Column(String)
+    profile_image_path = Column(String)
