@@ -24,7 +24,7 @@ CREATE TABLE hotels (
     country VARCHAR(255) NOT NULL,
     amenities INTEGER NOT NULL,
     tag_list VARCHAR(512),
-    FOREIGN KEY (owner_id) REFERENCES users(user_id)   -- Foreign Key
+    FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE CASCADE -- Foreign Key
 
 );
 
@@ -36,7 +36,7 @@ CREATE TABLE kyp (
 	hotelling_license VARCHAR(255),
 	account_number VARCHAR(512),
     ifsc_code VARCHAR(512),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)  -- Foreign Key
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE  -- Foreign Key
 
 );
 
@@ -46,9 +46,10 @@ CREATE TABLE rooms (
 	hotel_id INTEGER NOT NULL,
 	room_type INTEGER NOT NULL,
 	price FLOAT NOT NULL,
-	number_of_rooms INTEGER,
+	number_of_available_rooms INTEGER,
+    total_rooms INTEGER,
     amenities INTEGER,
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id)  -- Foreign Key
+    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE  -- Foreign Key
 	
 );
 
@@ -64,8 +65,8 @@ CREATE TABLE bookings (
     number_of_rooms INTEGER DEFAULT 1,
     status SMALLINT,
     transaction_id INTEGER,
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),  -- Foreign Key
-    FOREIGN KEY (user_id) REFERENCES users(user_id)   -- Foreign Key
+    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE,  -- Foreign Key
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE   -- Foreign Key
 );
 
 -- Guest Profiles
@@ -75,7 +76,7 @@ CREATE TABLE guest_profiles (
 	user_id INTEGER NOT NULL,
     age INTEGER,
     gender VARCHAR(255),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)   -- Foreign Key
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE   -- Foreign Key
 	
 );
 
@@ -83,8 +84,8 @@ CREATE TABLE guest_profiles (
 CREATE TABLE booking_guests (
 	booking_id INTEGER NOT NULL,
 	guest_id INTEGER NOT NULL,
-    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id), -- Foreign Key
-    FOREIGN KEY (guest_id) REFERENCES guest_profiles(guest_id), -- Foreign Key
+    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE, -- Foreign Key
+    FOREIGN KEY (guest_id) REFERENCES guest_profiles(guest_id) ON DELETE CASCADE, -- Foreign Key
     PRIMARY KEY (booking_id,guest_id)
 );
 
@@ -97,17 +98,16 @@ CREATE TABLE reviews (
 	title VARCHAR(255),
 	description TEXT,
     rating INTEGER,
-    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),  -- Foreign Key
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),       -- Foreign Key
-    FOREIGN KEY (user_id) REFERENCES users(user_id)           -- Foreign Key
+    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE,  -- Foreign Key
+    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE      -- Foreign Key
 );
 
 -- Wishlist
 CREATE TABLE wishlist (
     user_id INTEGER NOT NULL,
 	hotel_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),  -- Foreign Key
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),   -- Foreign Key
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,  -- Foreign Key
+    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE,   -- Foreign Key
     PRIMARY KEY (user_id,hotel_id)
 );
 
@@ -116,7 +116,7 @@ CREATE TABLE hotel_photos (
     photo_id SERIAL PRIMARY KEY,
     hotel_id INTEGER NOT NULL,
     photo_url VARCHAR(255) NOT NULL,
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id)    -- Foreign Key
+    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE   -- Foreign Key
 );
 
 -- Tags
@@ -126,3 +126,14 @@ CREATE TABLE tags (
 );
 
 -----
+-- DROP TABLE users;
+-- DROP TABLE hotels;
+-- DROP TABLE hotel_photos;
+-- DROP TABLE tags;
+-- DROP TABLE bookings;
+-- DROP TABLE booking_guests;
+-- DROP TABLE wishlist;
+-- DROP TABLE reviews;
+-- DROP TABLE kyp;
+-- DROP TABLE guest_profiles;
+-- DROP TABLE rooms;
