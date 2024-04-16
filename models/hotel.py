@@ -12,5 +12,11 @@ class Hotel(BaseModel):
     city: str
     state: str
     country: str
-    amenities: int
+    amenities: str
     tag_list: str
+
+class Room(BaseModel):
+    room_type: int
+    number_of_rooms: int
+    price: float
+    amenities: str

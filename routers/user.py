@@ -56,7 +56,7 @@ def register(user: user.User, db: Session = Depends(get_db)):
         email_id=user.email, 
         password=hashed_password,
         salt=salt,
-        profile_image_path = user.profile_img
+        profile_image_path = user.profile_img    # Left - Store the actual image in file system 
     )
     
     db.add(u)
@@ -68,7 +68,7 @@ def register(user: user.User, db: Session = Depends(get_db)):
 @router.get("/logged_user")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return {"error": "user not logged in"}
+        return {"error": "user not logged in"}   # Redirect to login
     
     u = db.query(UserTable).filter(UserTable.user_id == auth).first()
     if not u:
