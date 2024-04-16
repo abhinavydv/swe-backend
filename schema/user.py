@@ -13,3 +13,4 @@ class User(db.Base):
     password = Column(String)
     salt = Column(String)
     profile_image_path = Column(String)
+    cookie = Column(String)
