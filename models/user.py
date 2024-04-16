@@ -7,3 +7,7 @@ class User(BaseModel):
     email: str
     password: str
     profile_img: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
