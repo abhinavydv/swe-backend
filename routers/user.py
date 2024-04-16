@@ -6,7 +6,7 @@ from models import user
 from schema.user import User as UserTable
 import hashlib
 import secrets
-import random
+
 
 router = APIRouter(
     prefix="/users",
@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 def generate_cookie(user_id, email_id):
-    secret = random.randbytes(2048)
+    secret = secrets.token_bytes(256)
     return hashlib.sha256(secret+str(user_id).encode()+str(email_id).encode()).hexdigest()
 
 @router.post("/login")
@@ -66,6 +66,7 @@ def register(user: user.User, db: Session = Depends(get_db)):
         email_id=user.email, 
         password=hashed_password,
         salt=salt,
+        role=user.role,
         profile_image_path = user.profile_img    # Left - Store the actual image in file system 
     )
 

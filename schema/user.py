@@ -12,5 +12,6 @@ class User(db.Base):
     last_name = Column(String)
     password = Column(String)
     salt = Column(String)
+    role = Column(String)   # customer or partner
     profile_image_path = Column(String)
     cookie = Column(String)
