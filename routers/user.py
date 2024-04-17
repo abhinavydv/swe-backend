@@ -79,15 +79,26 @@ def register(user: user.User, db: Session = Depends(get_db)):
 
     return {"status": "successfully registered user"}
 
-@router.get("/logged_user")
+@router.get("/logged_customer")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
         return {"error": "user not logged in"}   # Redirect to login
 
-    u = db.query(UserTable).filter(UserTable.cookie == auth).first()
+    u = db.query(UserTable).filter(UserTable.cookie == auth and UserTable.role == "customer").first()
     if not u:
         return {"error": "user not found"}
+    
+    return u
 
+@router.get('/logged_partner')
+def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
+    if auth is None:
+        return {"error": "user not logged in"}   # Redirect to login
+
+    u = db.query(UserTable).filter(UserTable.cookie == auth and UserTable.role == "partner").first()
+    if not u:
+        return {"error": "user not found"}
+    
     return u
 
 @router.get("/logout")

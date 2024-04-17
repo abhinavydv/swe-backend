@@ -6,7 +6,9 @@ CREATE TABLE users (
     last_name VARCHAR(255),
     password VARCHAR(255) NOT NULL,
     salt VARCHAR(255) NOT NULL,
-	profile_image_path VARCHAR(255)
+    role VARCHAR(255),
+	profile_image_path VARCHAR(255),
+    cookie VARCHAR(255)
 );
 
 -- Hotel

@@ -4,7 +4,8 @@ from config.db import get_db
 from models import hotel
 from schema.hotel import Hotel as HotelTable
 from schema.room import Room as RoomTable
-from routers.user import get_logged_user
+from schema.user import User as UserTable
+from routers.user import get_logged_partner
 from typing import List
 
 router = APIRouter(
@@ -17,7 +18,10 @@ def get_hotels(city: str):
     pass
 
 @router.post("/add_hotel")
-def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_user),db: Session = Depends(get_db)):
+def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    # Adding photos
+    # Tag List parsing
+
     h = HotelTable(
         owner_id = owner.user_id,
         hotel_name = hotel.hotel_name,
@@ -53,8 +57,11 @@ def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_l
     return {"message": "Hotel and rooms added successfully"}
 
 @router.post('/edit_hotel')
-def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_user),db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first()
+def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    # Adding photos
+    # Tag List parsing
+    
+    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first()
 
     if not h:
         return {"error":"hotel not found"}
@@ -99,11 +106,15 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
     return {"message": "hotel and rooms edited successfully"}
 
 @router.post('/delete_room_type')
-def delete_room(hotel_id,room_type,db: Session = Depends(get_db)):
+def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first():
+        return {"error":"hotel not found"}
+    
     r = db.query(RoomTable).filter(RoomTable.hotel_id == hotel_id and RoomTable.room_type==room_type).first()
 
     if not r:
-        return {"error": "room tpe not found"}
+        return {"error": "room type not found"}
     
     db.delete(r)
     db.commit()
@@ -111,8 +122,9 @@ def delete_room(hotel_id,room_type,db: Session = Depends(get_db)):
     return {"message": "room deleted successfully"}
 
 @router.post('/delete_hotel')
-def delete_hotel(hotel_id,db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first()
+def delete_hotel(hotel_id,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    
+    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first()
 
     if not h:
         return {"error":"hotel not found"}
@@ -121,7 +133,7 @@ def delete_hotel(hotel_id,db: Session = Depends(get_db)):
 
     db.commit()
 
-    return {"hotel deleted success"}
+    return {"message":"hotel deleted successfully"}
             
     
     
