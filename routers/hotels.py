@@ -13,9 +13,6 @@ router = APIRouter(
     tags=["hotels"],
 )
 
-@router.get("/{city}")
-def get_hotels(city: str):
-    pass
 
 @router.post("/add_hotel")
 def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
@@ -120,6 +117,24 @@ def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Sessi
     db.commit()
 
     return {"message": "room deleted successfully"}
+
+@router.post("/view hotel")
+def view_hotel(hotel_id,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == partner.user_id).first()
+
+    if not h:
+        return {"error":"hotel not found"}
+    
+    return h
+
+@router.get('/view_listings')
+def view_listings(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    h = db.query(HotelTable).filter(HotelTable.owner_id == partner.user_id).all()
+
+    if not h:
+        return {"error" : "no hotels found"}
+    
+    return h
 
 @router.post('/delete_hotel')
 def delete_hotel(hotel_id,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):

@@ -4,8 +4,14 @@ from sqlalchemy.orm import Session
 from config.db import get_db
 from models import user
 from schema.user import User as UserTable
+from schema.kyp import KYP as KYPTable
+from schema.hotel import Hotel as HotelTable
+from schema.wishlist import Wishlist
 import hashlib
 import secrets
+
+# Email verification using OTP
+# Saving images and documents in a folder and their paths in db
 
 
 router = APIRouter(
@@ -70,8 +76,8 @@ def register(user: user.User, db: Session = Depends(get_db)):
         nationality=user.nationality,
         password=hashed_password,
         salt=salt,
-        role=user.role,
-        profile_image_path = user.profile_img    # Left - Store the actual image in file system 
+        role=user.role
+        #profile_image_path = user.profile_img    # Left - Store the actual image in file system 
     )
 
     cookie = generate_cookie(u.user_id, u.email_id)
@@ -84,7 +90,7 @@ def register(user: user.User, db: Session = Depends(get_db)):
     return {"status": "successfully registered user"}
 
 @router.get("/logged_customer")
-def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
+def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
         return {"error": "user not logged in"}   # Redirect to login
 
@@ -104,6 +110,92 @@ def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
         return {"error": "user not found"}
     
     return u
+
+@router.post('/edit_profile')
+def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get_logged_customer),db: Session = Depends(get_db)):
+    stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(
+        first_name = profile.first_name,
+        last_name = profile.last_name,
+        email_id = profile.email,
+        dob = profile.dob,
+        phone_number = profile.phone_number,
+        gender = profile.gender,
+        nationality = profile.nationality,
+        profile_image_path = profile.profile_img
+    )
+
+    db.execute(stmt)
+    db.commit()
+
+    return {"message" : "edited profile successfully"}
+
+
+@router.post('/kyp')
+def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    k = KYPTable(
+        user_id = partner.user_id,
+        pan_number = kyp.pan_number,
+        aadhar_photo_path = kyp.aadhar_photo_path,
+        hotelling_license = kyp.hotelling_license,
+        account_number = kyp.account_number,
+        ifsc_code = kyp.ifsc_code
+    )
+
+    db.add(k)
+    db.commit()
+    db.refresh()
+
+    return {"status": "kyp is successfull"}
+
+@router.get('/get_kyp')
+def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    k = db.query(KYPTable).filter(KYPTable.user_id == partner.user_id).first()
+
+    if not k:
+        return {"error": "kyp not done"}
+    
+    return k
+
+@router.post('/add_to_wishlist')
+def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+        return {"error": "hotel not found"}
+    
+    w = Wishlist(
+        hotel_id = hotel_id,
+        user_id = customer.user_id
+    )
+
+    db.add(w)
+    db.commit()
+    db.refresh()
+
+    return {"message" : "added to wishlist successfully"}
+
+@router.post('/delete_from_wishlist')
+def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+        return {"error": "hotel not found"}
+    
+    w = db.query(Wishlist).filter(Wishlist.hotel_id == hotel_id and Wishlist.user_id == customer.user_id).first()
+
+    if not w:
+        return {"error" : "wishlist entry not found"}
+    
+    db.delete(w)
+    db.commit()
+
+    return {"message" : "deleted wishlist entry successfully"}
+
+@router.get('/view_wishlist')
+def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
+
+    if not w:
+        return {"error" : "wishlist is empty"}
+    
+    return w
+    
 
 @router.get("/logout")
 def logout(res: Response):
