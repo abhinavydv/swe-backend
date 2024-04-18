@@ -124,13 +124,13 @@ def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db))
 @router.get('/logged_partner')
 def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return {"error": "user not logged in"}   # Redirect to login
+        return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
 
     u = db.query(UserTable).filter(UserTable.cookie == auth and UserTable.role == "partner").first()
     if not u:
-        return {"error": "user not found"}
+        return {"status": "Error", "message": "user not found", "alert": False}
     
-    return u
+    return {"status": "OK", "message": "user found", "alert": False, "user": u}
 
 @router.post('/edit_profile')
 def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get_logged_customer),db: Session = Depends(get_db)):
@@ -148,7 +148,7 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get
     db.execute(stmt)
     db.commit()
 
-    return {"message" : "edited profile successfully"}
+    return {"status": "OK", "message": "Edited profile successfully", "alert": False}
 
 
 @router.post('/kyp')
@@ -166,21 +166,22 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
     db.commit()
     db.refresh()
 
-    return {"status": "kyp is successfull"}
+    return {"status": "OK", "message": "KYP is successfull", "alert": False}
+    
 
 @router.get('/get_kyp')
 def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     k = db.query(KYPTable).filter(KYPTable.user_id == partner.user_id).first()
 
     if not k:
-        return {"error": "kyp not done"}
+        return {"status": "Error", "message": "KYP not found", "alert": True}
     
-    return k
+    return {"status": "OK", "message": "KYP found", "alert": False, "kyp": k}
 
 @router.post('/add_to_wishlist')
 def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
-        return {"error": "hotel not found"}
+        return {"status": "Error", "message": "hotel not found", "alert": True}
     
     w = Wishlist(
         hotel_id = hotel_id,
@@ -191,29 +192,29 @@ def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Sessio
     db.commit()
     db.refresh()
 
-    return {"message" : "added to wishlist successfully"}
+    return {"status": "OK", "message": "added to wishlist successfully", "alert": False}
 
 @router.post('/delete_from_wishlist')
 def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
-        return {"error": "hotel not found"}
+        return {"status": "Error", "message": "hotel not found", "alert": True}
     
     w = db.query(Wishlist).filter(Wishlist.hotel_id == hotel_id and Wishlist.user_id == customer.user_id).first()
 
     if not w:
-        return {"error" : "wishlist entry not found"}
+        return {"status": "Error", "message": "wishlist entry not found", "alert": True}
     
     db.delete(w)
     db.commit()
 
-    return {"message" : "deleted wishlist entry successfully"}
+    return {"status": "OK", "message": "deleted wishlist entry successfully", "alert": False}
 
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
 
     if not w:
-        return {"error" : "wishlist is empty"}
+        return {"status": "Error", "message": "wishlist is empty", "alert": True}
     
     return w
     
@@ -221,5 +222,6 @@ def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(
 @router.get("/logout")
 def logout(res: Response):
     res.delete_cookie(key="auth")
-    return {"message": "logout successful"}
+    return {"status": "OK", "message": "logout successful", "alert": False}
+    
 
