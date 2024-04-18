@@ -24,11 +24,13 @@ def generate_cookie(user_id, email_id):
     return hashlib.sha256(secret+str(user_id).encode()+str(email_id).encode()).hexdigest()
 
 @router.post("/login")
-def login(res: Response,login_req: user.LoginRequest, db: Session = Depends(get_db)):
+def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get_db)):
+    print(res, login_req)
+
     u = db.query(UserTable).filter(UserTable.email_id == login_req.email).first()
 
     if not u:
-        return {"error": "email id doesn't exist"}
+        return {"status": "Error", "message": "Email or password incorrect", "alert": True}
 
     hashed_password = hashlib.sha256((login_req.password + u.salt).encode()).hexdigest()
 
@@ -38,25 +40,25 @@ def login(res: Response,login_req: user.LoginRequest, db: Session = Depends(get_
         res.set_cookie(
             key='auth',
             value=cookie,
-            max_age=1000 * 60 * 60 * 24,
-            httponly=True
+            max_age=60 * 60 * 24,
+            samesite="lax",
         )
         u.cookie = cookie
         stmt = update(UserTable).where(UserTable.user_id == u.user_id).values(cookie=cookie)
         db.execute(stmt)
         db.commit()
 
-        return {"status": "login successful"}
+        return {"status": "OK", "message": "login successful", "alert": False}
 
     else:
-        return {"error": "incorrect password"}
+        return {"status": "Error", "message": "Email or password incorrect", "alert": True}
 
 
 @router.post("/register")
-def register(user: user.User, db: Session = Depends(get_db)):
-
+def register(res: Response, user: user.User, db: Session = Depends(get_db)):
+    print(user)
     if db.query(UserTable).filter(UserTable.email_id == user.email).first():
-        return {"error": "user already exists"}
+        return {"status": "Error", "message": "User already exists", "alert": True}
 
     ## Email verification left
 
@@ -81,24 +83,43 @@ def register(user: user.User, db: Session = Depends(get_db)):
     )
 
     cookie = generate_cookie(u.user_id, u.email_id)
+    res.set_cookie(
+        key='auth',
+        value=cookie,
+        max_age=60 * 60 * 24,
+        samesite="lax",
+    )
     u.cookie = cookie
 
     db.add(u)
     db.commit()
     db.refresh(u)
 
-    return {"status": "successfully registered user"}
+    return {"status": "OK", "message": "User registered successfully", "alert": False}
+
+@router.get("/logged")
+def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
+    print(auth)
+    if auth is None:
+        return {"status": "Error", "message": "user not logged in", "alert": False}
+
+    u = db.query(UserTable).filter(UserTable.cookie == auth).first()
+    if not u:
+        return {"status": "Error", "message": "user not found", "alert": False}
+
+    return {"status": "OK", "message": "user found", "alert": False, "user": u}
 
 @router.get("/logged_customer")
 def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
+    print(auth)
     if auth is None:
-        return {"error": "user not logged in"}   # Redirect to login
+        return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
 
-    u = db.query(UserTable).filter(UserTable.cookie == auth and UserTable.role == "customer").first()
+    u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
-        return {"error": "user not found"}
-    
-    return u
+        return {"status": "Error", "message": "user not found", "alert": False}
+
+    return {"status": "OK", "message": "user found", "alert": False, "user": u}
 
 @router.get('/logged_partner')
 def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):

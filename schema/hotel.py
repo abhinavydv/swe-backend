@@ -8,7 +8,7 @@ class Hotel(db.Base):
 
     hotel_id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.user_id"), unique=True,nullable=False)
-    hotel_name = Column(String, nullable=False),
+    hotel_name = Column(String, nullable=False)
     property_paper_path = Column(String)
     description = Column(String)
     pincode = Column(String, nullable=False)
@@ -19,5 +19,3 @@ class Hotel(db.Base):
     country = Column(String, nullable=False)
     amenities = Column(Integer, nullable=False)
     tag_list = Column(String)
-   
-   

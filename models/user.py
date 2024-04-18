@@ -11,7 +11,8 @@ class User(BaseModel):
     nationality: str
     password: str
     role: str
-    
+    profile_picture: str
+
 
 class Profile(BaseModel):
     first_name: str
