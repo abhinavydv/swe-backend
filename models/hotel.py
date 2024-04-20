@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class Hotel(BaseModel):
@@ -14,11 +15,17 @@ class Hotel(BaseModel):
     amenities: str
     tag_list: str
 
+class RoomAmenities(BaseModel):
+    amenity: str
+    quality: str
+
 class Room(BaseModel):
     room_type: int
     number_of_rooms: int
+    bed_type: str
+    max_occupancy: int
     price: float
-    amenities: str
+    amenities: List[RoomAmenities]
 
 class HotelSearch(BaseModel):
     hotel_id: int
@@ -28,6 +35,15 @@ class HotelSearch(BaseModel):
     lowest_price: float
     rating: int
     img_path: str
+
+class HotelPage(BaseModel):
+    hotel_name: str
+    description: str
+    amenities: str
+    photos: List[str]
+    available_rooms: List[Room]
+
+
 
 class SearchQuery(BaseModel):
     text: str

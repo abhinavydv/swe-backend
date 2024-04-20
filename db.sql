@@ -51,6 +51,8 @@ CREATE TABLE rooms (
 	room_id SERIAL PRIMARY KEY,
 	hotel_id INTEGER NOT NULL,
 	room_type INTEGER NOT NULL,
+    bed_type VARCHAR(255),
+    max_occupancy INTEGER,
 	price FLOAT NOT NULL,
 	number_of_available_rooms INTEGER,
     total_rooms INTEGER,
@@ -59,7 +61,7 @@ CREATE TABLE rooms (
 );
 
 -- Room Amenities
-CREATE TABLE rooms_amenities (
+CREATE TABLE room_amenities (
 	room_id INTEGER NOT NULL,
 	amenity VARCHAR(255) NOT NULL,
     quality VARCHAR(255),

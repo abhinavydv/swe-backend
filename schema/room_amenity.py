@@ -11,5 +11,5 @@ class RoomAmenity(db.Base):
     quality = Column(String)  # good, bad
 
     __table_args__ = (
-        PrimaryKeyConstraint('room_id', 'amenity')
+        PrimaryKeyConstraint('room_id', 'amenity'),
     )
