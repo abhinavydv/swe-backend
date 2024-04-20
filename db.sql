@@ -54,8 +54,17 @@ CREATE TABLE rooms (
 	price FLOAT NOT NULL,
 	number_of_available_rooms INTEGER,
     total_rooms INTEGER,
-    amenities INTEGER,
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE  -- Foreign Key
+	
+);
+
+-- Room Amenities
+CREATE TABLE rooms_amenities (
+	room_id INTEGER NOT NULL,
+	amenity VARCHAR(255) NOT NULL,
+    quality VARCHAR(255),
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE,  -- Foreign Key
+    PRIMARY KEY (room_id,amenity)
 	
 );
 
@@ -67,9 +76,7 @@ CREATE TABLE bookings (
 	amount FLOAT NOT NULL,
 	from_date DATE NOT NULL,
 	to_date  DATE NOT NULL,
-	room_type INTEGER NOT NULL,
-    number_of_rooms INTEGER DEFAULT 1,
-    status SMALLINT,
+	status SMALLINT,
     transaction_id INTEGER,
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE,  -- Foreign Key
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE   -- Foreign Key
@@ -93,6 +100,17 @@ CREATE TABLE booking_guests (
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE, -- Foreign Key
     FOREIGN KEY (guest_id) REFERENCES guest_profiles(guest_id) ON DELETE CASCADE, -- Foreign Key
     PRIMARY KEY (booking_id,guest_id)
+);
+
+-- Booking rooms
+CREATE TABLE booking_rooms (
+	booking_id INTEGER NOT NULL,
+	room_id INTEGER NOT NULL,
+    room_type INTEGER NOT NULL,
+    number_of_rooms INTEGER NOT NULL,
+    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE, -- Foreign Key
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE, -- Foreign Key
+    PRIMARY KEY (booking_id,room_id)
 );
 
 -- Reviews

@@ -12,9 +12,7 @@ class Booking(db.Base):
     amount = Column(Float, nullable=False)
     from_date = Column(Date,nullable=False)
     to_date = Column(Date,nullable=False)
-    room_type = Column(Integer, nullable=False)
-    number_of_rooms = Column(Integer,default=1)
-    status = Column(Integer)
+    status = Column(Integer)   # -1 - cancel, 0 - booked, 1 - staying, 2 - completed
     transaction_id  = Column(Integer)
 
     

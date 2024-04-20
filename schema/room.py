@@ -12,5 +12,5 @@ class Room(db.Base):
     number_of_available_rooms = Column(Integer)
     total_rooms = Column(Integer)
     price = Column(Float,nullable=False)
-    amenities = Column(Integer)
+    
     
