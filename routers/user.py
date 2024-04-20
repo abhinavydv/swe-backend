@@ -99,7 +99,6 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 
 @router.get("/logged")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
-    print(auth)
     if auth is None:
         return {"status": "Error", "message": "user not logged in", "alert": False}
 
@@ -111,7 +110,6 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
 
 @router.get("/logged_customer")
 def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
-    print(auth)
     if auth is None:
         return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
 
