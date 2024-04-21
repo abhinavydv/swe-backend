@@ -27,6 +27,7 @@ class Room(BaseModel):
     price: float
     amenities: List[RoomAmenities]
 
+
 class HotelSearch(BaseModel):
     hotel_id: int
     hotel_name: int
@@ -43,12 +44,19 @@ class HotelPage(BaseModel):
     photos: List[str]
     available_rooms: List[Room]
 
-
+class DateRange(BaseModel):
+    start_date: str
+    end_date: str
 
 class SearchQuery(BaseModel):
     text: str
-    check_in_date: str
-    check_out_date: str
+    date_range: DateRange
+
+class SearchQueryWithFilter(BaseModel):
+    text: str
+    date_range: DateRange
     filters: str
+
+
 
     

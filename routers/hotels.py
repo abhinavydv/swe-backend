@@ -44,6 +44,7 @@ def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_l
             hotel_id = h.hotel_id,
             room_type = room.room_type,
             bed_type = room.bed_type,
+            max_occupancy = room.max_occupancy,
             number_of_available_rooms = room.number_of_rooms,
             total_rooms = room.number_of_rooms,
             price = room.price,
@@ -94,6 +95,7 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
                 hotel_id = hotel_id,
                 room_type = room.room_type,
                 bed_type = room.bed_type,
+                max_occupancy = room.max_occupancy,
                 number_of_available_rooms = room.number_of_rooms,
                 total_rooms = room.number_of_rooms,
                 price = room.price,
@@ -111,9 +113,11 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
                 
         # update existing room type
         else:
-            r.room_type = room.room_type,
-            r.total_rooms = room.number_of_rooms,
-            r.price = room.price,
+            r.room_type = room.room_type
+            r.total_rooms = room.number_of_rooms
+            r.bed_type = room.bed_type
+            r.max_occupancy = room.max_occupancy
+            r.price = room.price
             for amenity in room.amenities:
                 stmt = update(RoomAmenity).where(RoomAmenity.room_id == r.room_id).values(
                     amenity = amenity.amenity,

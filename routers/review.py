@@ -1,0 +1,79 @@
+from fastapi import APIRouter, Depends, Response, Cookie
+from sqlalchemy.orm import Session
+from sqlalchemy import update
+from config.db import get_db
+from models import hotel,booking,user,review
+from schema.hotel import Hotel as HotelTable
+from schema.booking import Booking as BookingTable
+from schema.user import User as UserTable
+from schema.review import Review as ReviewTable
+from routers.user import get_logged_partner,get_logged_customer
+
+router = APIRouter(
+    prefix="/review",
+    tags=["review"],
+)
+
+@router.post('/submit_review')
+def submit_review(review: review.Review, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    b = db.query(BookingTable).filter(BookingTable.booking_id == review.booking_id and BookingTable.user_id == customer.user_id).first()
+
+    if not b:
+        return {"status": "Error", "message": "booking not found", "alert": True}
+    
+    if b.status != 2:
+        return {"status": "Error", "message": "Stay not completed", "alert": True}
+    
+    rev = ReviewTable(
+        booking_id = review.booking_id,
+        user_id = customer.user_id,
+        hotel_id = b.hotel_id,
+        title = review.title,
+        description = review.description,
+        rating = review.rating
+    )
+
+    db.add(rev)
+    db.commit()
+
+    return {"status": "OK", "message": "review submitted successfully", "alert": False}
+
+@router.post('/delete_review')
+def delete_review(review_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    rev = db.query(ReviewTable).filter(ReviewTable.review_id == review_id and ReviewTable.user_id == customer.user_id).first()
+
+    if not rev:
+        return {"status": "Error", "message": "review not found", "alert": True}
+    
+    db.delete(rev)
+    db.commit()
+
+    return {"status": "OK", "message": "review deleted successfully", "alert": False}
+
+@router.post('/get_review')
+def get_review(booking_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    rev = db.query(ReviewTable).filter(ReviewTable.booking_id == booking_id and ReviewTable.user_id == customer.user_id).first()
+
+    if not rev:
+        return {"status": "Error", "message": "review not found", "alert": True}
+    
+    return {"status": "OK", "message": "review found", "alert": False, "reviews": rev}
+
+
+@router.get('/view_reviews')
+def get_all_reviews(hotel_id,partner = Depends(get_logged_partner), db: Session = Depends(get_db)):
+    revs = db.query(ReviewTable).filter(ReviewTable.hotel_id == hotel_id and ReviewTable.user_id == partner.user_id).all()
+
+    if not revs:
+        return {"status": "Error", "message": "reviews not found", "alert": True}
+    
+    return {"status": "OK", "message": "reviews found", "alert": False, "reviews": revs}
+
+
+@router.post('/get_statistics')
+def get_hotel_statistics(hotel_id,partner = Depends(get_logged_partner), db: Session = Depends(get_db)):
+    # avg_rating
+    # total bookings
+    # total money earnt
+    # days of stay over all bookings
+    pass
