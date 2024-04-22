@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Response, Cookie
-from sqlalchemy import update
+from sqlalchemy import update,or_,and_
 from sqlalchemy.orm import Session
 from config.db import get_db
 from models import user
@@ -9,6 +9,7 @@ from schema.hotel import Hotel as HotelTable
 from schema.wishlist import Wishlist
 import hashlib
 import secrets
+import os
 
 # Email verification using OTP
 # Saving images and documents in a folder and their paths in db
@@ -18,6 +19,8 @@ router = APIRouter(
     prefix="/users",
     tags=["users"],
 )
+
+UPLOAD_FOLDER = "uploads/profile_images"
 
 def generate_cookie(user_id, email_id):
     secret = secrets.token_bytes(256)
@@ -79,7 +82,6 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
         password=hashed_password,
         salt=salt,
         role=user.role
-        #profile_image_path = user.profile_img    # Left - Store the actual image in file system 
     )
 
     cookie = generate_cookie(u.user_id, u.email_id)
@@ -105,8 +107,22 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
         return {"status": "Error", "message": "user not found", "alert": False}
+    
+    user_details = user.UserWithoutPassword(
+        user_id=u.user_id,
+        first_name=u.first_name,
+        last_name=u.last_name,
+        email=u.email_id,
+        dob=u.dob,
+        gender=u.gender,
+        phone_number=u.phone_number,
+        nationality=u.nationality,
+        cookie=u.cookie,
+        profile_img=u.profile_image_path,
+        role=u.role
+    )
 
-    return {"status": "OK", "message": "user found", "alert": False, "user": u}
+    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
 
 @router.get("/logged_customer")
 def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
@@ -116,22 +132,54 @@ def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db))
     u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
         return {"status": "Error", "message": "user not found", "alert": False}
+    
+    user_details = user.UserWithoutPassword(
+        user_id=u.user_id,
+        first_name=u.first_name,
+        last_name=u.last_name,
+        email=u.email_id,
+        dob=u.dob,
+        gender=u.gender,
+        phone_number=u.phone_number,
+        nationality=u.nationality,
+        cookie=u.cookie,
+        profile_img=u.profile_image_path,
+        role=u.role
+    )
 
-    return {"status": "OK", "message": "user found", "alert": False, "user": u}
+    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
 
 @router.get('/logged_partner')
 def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
         return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
 
-    u = db.query(UserTable).filter(UserTable.cookie == auth and UserTable.role == "partner").first()
+    u = db.query(UserTable).filter(and_(UserTable.cookie == auth ,UserTable.role == "partner")).first()
     if not u:
         return {"status": "Error", "message": "user not found", "alert": False}
     
-    return {"status": "OK", "message": "user found", "alert": False, "user": u}
+    user_details = user.UserWithoutPassword(
+        user_id=u.user_id,
+        first_name=u.first_name,
+        last_name=u.last_name,
+        email=u.email_id,
+        dob=u.dob,
+        gender=u.gender,
+        phone_number=u.phone_number,
+        nationality=u.nationality,
+        cookie=u.cookie,
+        profile_img=u.profile_image_path,
+        role=u.role
+    )
+    
+    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
 
 @router.post('/edit_profile')
 def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get_logged_customer),db: Session = Depends(get_db)):
+    # file_path = os.path.join(UPLOAD_FOLDER, profile.profile_img.filename)
+    # with open(file_path, "wb") as buffer:
+    #     buffer.write(profile.profile_img.read())
+    
     stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(
         first_name = profile.first_name,
         last_name = profile.last_name,
@@ -176,46 +224,6 @@ def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db))
     
     return {"status": "OK", "message": "KYP found", "alert": False, "kyp": k}
 
-@router.post('/add_to_wishlist')
-def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
-        return {"status": "Error", "message": "hotel not found", "alert": True}
-    
-    w = Wishlist(
-        hotel_id = hotel_id,
-        user_id = customer.user_id
-    )
-
-    db.add(w)
-    db.commit()
-    db.refresh()
-
-    return {"status": "OK", "message": "added to wishlist successfully", "alert": False}
-
-@router.post('/delete_from_wishlist')
-def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
-        return {"status": "Error", "message": "hotel not found", "alert": True}
-    
-    w = db.query(Wishlist).filter(Wishlist.hotel_id == hotel_id and Wishlist.user_id == customer.user_id).first()
-
-    if not w:
-        return {"status": "Error", "message": "wishlist entry not found", "alert": True}
-    
-    db.delete(w)
-    db.commit()
-
-    return {"status": "OK", "message": "deleted wishlist entry successfully", "alert": False}
-
-@router.get('/view_wishlist')
-def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
-
-    if not w:
-        return {"status": "Error", "message": "wishlist is empty", "alert": True}
-    
-    return w
-    
 
 @router.get("/logout")
 def logout(res: Response):

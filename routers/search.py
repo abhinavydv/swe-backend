@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Response, Cookie
-from sqlalchemy.orm import Session
-from sqlalchemy import func,text,or_
+from sqlalchemy.orm import Session,joinedload
+from sqlalchemy import func,text,or_,and_
 from config.db import get_db
 from models import hotel
 from schema.hotel import Hotel as HotelTable
@@ -10,6 +10,7 @@ from schema.review import Review as ReviewTable
 from schema.room import Room as RoomTable
 from schema.room_amenity import RoomAmenity
 from schema.hotel_photo import HotelPhoto as PhotoTable
+from schema.wishlist import Wishlist
 from routers.user import get_logged_partner,get_logged_customer
 from typing import List
 
@@ -63,10 +64,10 @@ def get_available_rooms(hotel_id, date_range: hotel.DateRange,db: Session = Depe
 
     return avail_rooms
 
+
 # need to test properly
 @router.post('/{query}')
 def get_hotels(query: str, db: Session = Depends(get_db)):
-    #h = db.query(HotelTable).filter(HotelTable.hotel_name == query or HotelTable.city == query or HotelTable.locality == query).all()
     h = db.query(HotelTable).filter(or_(HotelTable.city == query, HotelTable.hotel_name == query, HotelTable.locality == query )).all()
     hotel_obj = []
 
@@ -127,24 +128,103 @@ def get_hotel_page(hotel_id, date_range: hotel.DateRange,db: Session = Depends(g
     available_rooms = []
 
     for room in avail_rooms:
-        r = hotel.Room()
-        r.bed_type = room.bed_type
-        r.max_occupancy = room.max_occupancy
-        r.price = room.price
-        r.room_type = room.room_type
         a = db.query(RoomAmenity).filter(RoomAmenity.room_id == room.room_id).all()
-        r.amenities = a
-
+        r = hotel.Room(
+            bed_type = room.bed_type,
+            max_occupancy = room.max_occupancy,
+            price = room.price,
+            room_type = room.room_type,
+            amenities = a
+        )
+        
         available_rooms.append(r)
     
-    h_page = hotel.HotelPage()
-    h_page.hotel_name = h.hotel_name
-    h_page.amenities = h.amenities
-    h_page.description = h.description
-    h_page.available_rooms = available_rooms
-    h_page.photos = hotel_photos
-
+    h_page = hotel.HotelPage(
+        hotel_name = h.hotel_name,
+        amenities = h.amenities,
+        description = h.description,
+        available_rooms = available_rooms,
+        photos = hotel_photos
+    )
+    
     return {"status": "OK", "message": "Found hotel details", "alert": False, "hotel_page" : h_page}
+
+@router.post('/add_to_wishlist')
+def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+        return {"status": "Error", "message": "hotel not found", "alert": True}
+    
+    w = Wishlist(
+        hotel_id = hotel_id,
+        user_id = customer.user_id
+    )
+
+    db.add(w)
+    db.commit()
+    db.refresh()
+
+    return {"status": "OK", "message": "added to wishlist successfully", "alert": False}
+
+@router.post('/delete_from_wishlist')
+def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+        return {"status": "Error", "message": "hotel not found", "alert": True}
+    
+    w = db.query(Wishlist).filter(and_(Wishlist.hotel_id == hotel_id, Wishlist.user_id == customer.user_id)).first()
+
+    if not w:
+        return {"status": "Error", "message": "wishlist entry not found", "alert": True}
+    
+    db.delete(w)
+    db.commit()
+
+    return {"status": "OK", "message": "deleted wishlist entry successfully", "alert": False}
+
+@router.get('/view_wishlist')
+def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
+
+    w = (
+        db.query(Wishlist,HotelTable).join(HotelTable, Wishlist.hotel_id == HotelTable.hotel_id)
+        .filter(Wishlist.user_id == customer.user_id).all()
+    )
+
+    if not w:
+        return {"status": "Error", "message": "wishlist is empty", "alert": True}
+    
+    hotel_obj = []
+    
+    for hotel_row in w:
+        rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_row.hotel_id).scalar()
+        lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
+        photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
+
+        if not lowest_price:
+            lowest_price = 0
+        
+        if not rating:
+            rating = 0
+        
+        if not photo:
+            photo = ""
+
+        obj = hotel.HotelSearch(
+            hotel_id = hotel_row.hotel_id,
+            address = hotel_row.address,
+            amenities = str(hotel_row.amenities),
+            hotel_name = hotel_row.hotel_name,
+            lowest_price = lowest_price,
+            rating=rating,
+            img_path=photo
+        )
+        
+        hotel_obj.append(obj)
+
+    
+    return {"status": "OK", "message": "Found hotels in wishlist", "alert": False, "wishlist" : hotel_obj}
+    
+    
+    
 
     
 

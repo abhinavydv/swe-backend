@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from fastapi import UploadFile,File
 
 
 class User(BaseModel):
@@ -11,8 +12,19 @@ class User(BaseModel):
     nationality: str
     password: str
     role: str
-    profile_picture: str
 
+class UserWithoutPassword(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    email: str
+    dob: str
+    phone_number: str
+    gender: str
+    nationality: str
+    role: str
+    cookie: str
+    profile_img: str
 
 class Profile(BaseModel):
     first_name: str
