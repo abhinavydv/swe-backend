@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import user, hotels,search
+from routers import user,hotels,search
 import models as _
 from config.db import engine, Base
 

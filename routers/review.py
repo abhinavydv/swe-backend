@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
-from sqlalchemy import update
+from sqlalchemy import update,func
 from config.db import get_db
-from models import hotel,booking,user,review
+from models import hotel,booking,user
 from schema.hotel import Hotel as HotelTable
 from schema.booking import Booking as BookingTable
 from schema.user import User as UserTable
@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 @router.post('/submit_review')
-def submit_review(review: review.Review, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def submit_review(review: booking.Review, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     b = db.query(BookingTable).filter(BookingTable.booking_id == review.booking_id and BookingTable.user_id == customer.user_id).first()
 
     if not b:
@@ -72,8 +72,23 @@ def get_all_reviews(hotel_id,partner = Depends(get_logged_partner), db: Session 
 
 @router.post('/get_statistics')
 def get_hotel_statistics(hotel_id,partner = Depends(get_logged_partner), db: Session = Depends(get_db)):
+    
+    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == partner.user_id).first()
+    if not h:
+        return {"status": "Error", "message": "hotel not found", "alert": True}
+    
+    h_stat = hotel.HotelStatistics()
+    
+    h_stat.avg_rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_id).scalar()
+    h_stat.total_bookings = db.query(func.count(BookingTable.booking_id)).filter(BookingTable.hotel_id == hotel_id).scalar()
+    h_stat.earnings = db.query(func.sum(BookingTable.amount)).filter(BookingTable.hotel_id == hotel_id).scalar()
+    h_stat.days_of_stay = db.query(func.sum(func.age(BookingTable.check_out_date - BookingTable.check_in_date))).filter(BookingTable.hotel_id == hotel_id).scalar()
+
+    return {"status": "OK", "message": "statistics calculated", "alert": False, "statistics": h_stat}
+    
+    
     # avg_rating
     # total bookings
     # total money earnt
     # days of stay over all bookings
-    pass
+    

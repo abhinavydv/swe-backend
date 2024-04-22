@@ -27,10 +27,16 @@ class Room(BaseModel):
     price: float
     amenities: List[RoomAmenities]
 
+class HotelStatistics(BaseModel):
+    avg_rating: int
+    total_bookings: int
+    earnings: float
+    days_of_stay: int
+
 
 class HotelSearch(BaseModel):
     hotel_id: int
-    hotel_name: int
+    hotel_name: str
     address: str
     amenities: str
     lowest_price: float

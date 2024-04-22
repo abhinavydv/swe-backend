@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
-from sqlalchemy import func,text
+from sqlalchemy import func,text,or_
 from config.db import get_db
 from models import hotel
 from schema.hotel import Hotel as HotelTable
@@ -64,34 +64,47 @@ def get_available_rooms(hotel_id, date_range: hotel.DateRange,db: Session = Depe
     return avail_rooms
 
 # need to test properly
-@router.post('/{query.text}')
-def get_hotels(query: hotel.SearchQuery, db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(HotelTable.hotel_name == query or HotelTable.city == query or HotelTable.locality == query).all()
+@router.post('/{query}')
+def get_hotels(query: str, db: Session = Depends(get_db)):
+    #h = db.query(HotelTable).filter(HotelTable.hotel_name == query or HotelTable.city == query or HotelTable.locality == query).all()
+    h = db.query(HotelTable).filter(or_(HotelTable.city == query, HotelTable.hotel_name == query, HotelTable.locality == query )).all()
     hotel_obj = []
 
     if not h:
         return {"status": "Error", "message": "No results", "alert": True}
     
     for hotel_row in h:
-        if not get_available_rooms(hotel_row.hotel_id, query.date_range, db):
-            continue
+        # if not get_available_rooms(hotel_row.hotel_id, query.date_range, db):
+        #     continue
         
-        obj = hotel.HotelSearch()
         rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_row.hotel_id).scalar()
         lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
         photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
-        
-        obj.hotel_id = hotel_row.hotel_id
-        obj.address = hotel_row.address
-        obj.amenities = str(hotel_row.amenities)
-        obj.hotel_name = hotel_row.hotel_name
-        obj.lowest_price = lowest_price
-        obj.rating = rating
-        obj.img_path = photo
 
+        if not lowest_price:
+            lowest_price = 0
+        
+        if not rating:
+            rating = 0
+        
+        if not photo:
+            photo = ""
+
+        obj = hotel.HotelSearch(
+            hotel_id = hotel_row.hotel_id,
+            address = hotel_row.address,
+            amenities = str(hotel_row.amenities),
+            hotel_name = hotel_row.hotel_name,
+            lowest_price = lowest_price,
+            rating=rating,
+            img_path=photo
+        )
+        
         hotel_obj.append(obj)
 
-    
+    if not hotel_obj:
+        return {"status": "Error", "message": "No results", "alert": True}
+
     return {"status": "OK", "message": "Found hotels", "alert": False, "hotels" : hotel_obj}
     
 
