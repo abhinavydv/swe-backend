@@ -120,7 +120,7 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
         phone_number=u.phone_number,
         nationality=u.nationality,
         cookie=u.cookie,
-        profile_img=u.profile_image_path,
+        profile_img=u.profile_image_path if u.profile_image_path is not None else "",
         role=u.role
     )
 
@@ -148,7 +148,7 @@ def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db))
         phone_number=u.phone_number,
         nationality=u.nationality,
         cookie=u.cookie,
-        profile_img=u.profile_image_path,
+        profile_img=u.profile_image_path if u.profile_image_path is not None else "",
         role=u.role
     )
 
@@ -176,7 +176,7 @@ def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
         phone_number=u.phone_number,
         nationality=u.nationality,
         cookie=u.cookie,
-        profile_img=u.profile_image_path,
+        profile_img=u.profile_image_path if u.profile_image_path is not None else "",
         role=u.role
     )
     

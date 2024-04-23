@@ -156,6 +156,8 @@ def get_hotel_page(hotel_id, date_range: hotel.DateRange,db: Session = Depends(g
 
 @router.post('/add_to_wishlist')
 def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
@@ -172,6 +174,8 @@ def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Sessio
 
 @router.post('/delete_from_wishlist')
 def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
@@ -188,6 +192,8 @@ def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: S
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     #w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
 
     w = (
         db.query(Wishlist,HotelTable).join(HotelTable, Wishlist.hotel_id == HotelTable.hotel_id)

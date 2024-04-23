@@ -20,6 +20,8 @@ router = APIRouter(
 def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     # Adding photos
     # Tag List parsing
+    if owner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
 
     h = HotelTable(
         owner_id = owner.user_id,
@@ -67,6 +69,8 @@ def add_hotel(hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_l
 def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     # Adding photos
     # Tag List parsing
+    if owner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     
     h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
@@ -131,6 +135,8 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
 
 @router.post('/delete_room_type')
 def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    if owner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     
     if not db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
@@ -147,6 +153,8 @@ def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Sessi
 
 @router.post("/view hotel")
 def view_hotel(hotel_id,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    if partner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == partner.user_id)).first()
 
     if not h:
@@ -156,6 +164,8 @@ def view_hotel(hotel_id,partner = Depends(get_logged_partner),db: Session = Depe
 
 @router.get('/view_listings')
 def view_listings(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    if partner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     h = db.query(HotelTable).filter(HotelTable.owner_id == partner.user_id).all()
 
     if not h:
@@ -165,6 +175,8 @@ def view_listings(partner = Depends(get_logged_partner),db: Session = Depends(ge
 
 @router.post('/delete_hotel')
 def delete_hotel(hotel_id,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    if owner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     
     h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
