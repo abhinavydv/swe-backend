@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
-from sqlalchemy import update
+from sqlalchemy import update,or_,and_
 from config.db import get_db
 from models import hotel,booking,user
 from schema.hotel import Hotel as HotelTable
@@ -43,7 +43,7 @@ def add_guest_profile(guest: booking.GuestProfile,customer = Depends(get_logged_
 
 @router.post('/edit_guest')
 def edit_guest_profile(guest_id, guest: booking.GuestProfile,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    g = db.query(GuestProfile).filter(GuestProfile.guest_id == guest_id and GuestProfile.user_id == customer.user_id).first()
+    g = db.query(GuestProfile).filter(and_(GuestProfile.guest_id == guest_id ,GuestProfile.user_id == customer.user_id)).first()
     if not g:
         return {"status": "Error", "message": "guest not found", "alert": True}
     
@@ -60,7 +60,7 @@ def edit_guest_profile(guest_id, guest: booking.GuestProfile,customer = Depends(
 
 @router.post('/delete_guest')
 def delete_guest_profile(guest_id,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    g = db.query(GuestProfile).filter(GuestProfile.guest_id == guest_id and GuestProfile.user_id == customer.user_id).first()
+    g = db.query(GuestProfile).filter(and_(GuestProfile.guest_id == guest_id,GuestProfile.user_id == customer.user_id)).first()
     if not g:
         return {"status": "Error", "message": "guest not found", "alert": True}
     
@@ -130,7 +130,7 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
 
 @router.post('/cancel')
 def cancel_booking(booking_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    b = db.query(BookingTable).filter(BookingTable.booking_id == booking_id and BookingTable.user_id == customer.user_id).first()
+    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id,BookingTable.user_id == customer.user_id)).first()
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
     
@@ -147,7 +147,7 @@ def cancel_booking(booking_id, customer = Depends(get_logged_customer), db: Sess
 
 @router.post('/get_booking')
 def get_booking_details(booking_id,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    b = db.query(BookingTable).filter(BookingTable.booking_id == booking_id and BookingTable.user_id == customer.user_id).first()
+    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id,BookingTable.user_id == customer.user_id)).first()
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
     

@@ -42,7 +42,6 @@ class LoginRequest(BaseModel):
 
 class KYP(BaseModel):
     pan_number: str
-    hotelling_license: str
-    aadhar_photo_path: str
+    aadhar_number: str
     account_number: str
     ifsc_code: str

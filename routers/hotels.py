@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
-from sqlalchemy import update
+from sqlalchemy import update,or_,and_
 from config.db import get_db
 from models import hotel
 from schema.hotel import Hotel as HotelTable
@@ -68,7 +68,7 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
     # Adding photos
     # Tag List parsing
     
-    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first()
+    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
@@ -87,7 +87,7 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
     h.tag_list = hotel.tag_list
 
     for room in rooms:
-        r = db.query(RoomTable).filter(RoomTable.hotel_id == hotel_id and RoomTable.room_type==room.room_type).first()
+        r = db.query(RoomTable).filter(and_(RoomTable.hotel_id == hotel_id,RoomTable.room_type==room.room_type)).first()
 
         # Room type not present add in the rooms db
         if not r:
@@ -132,10 +132,10 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel, rooms: List[hotel.Room] ,owner = De
 @router.post('/delete_room_type')
 def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     
-    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first():
+    if not db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
-    r = db.query(RoomTable).filter(RoomTable.hotel_id == hotel_id and RoomTable.room_type==room_type).first()
+    r = db.query(RoomTable).filter(and_(RoomTable.hotel_id == hotel_id ,RoomTable.room_type==room_type)).first()
 
     if not r:
         return {"status": "Error", "message": "room type not found", "alert": True}
@@ -147,7 +147,7 @@ def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Sessi
 
 @router.post("/view hotel")
 def view_hotel(hotel_id,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == partner.user_id).first()
+    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == partner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
@@ -166,7 +166,7 @@ def view_listings(partner = Depends(get_logged_partner),db: Session = Depends(ge
 @router.post('/delete_hotel')
 def delete_hotel(hotel_id,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     
-    h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == owner.user_id).first()
+    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}

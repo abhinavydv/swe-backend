@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import user,hotels,search
+from routers import user,hotels,search,booking
 import models as _
 from config.db import engine, Base
 
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(user.router)
 app.include_router(hotels.router)
 app.include_router(search.router)
+app.include_router(booking.router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -37,7 +37,8 @@ CREATE TABLE hotels (
 -- KYP
 CREATE TABLE kyp (
 	user_id INTEGER PRIMARY KEY,
-	pan_number VARCHAR(255) ,
+	pan_number VARCHAR(255),
+    aadhar_number VARCHAR(255),
 	aadhar_photo_path VARCHAR(255),
 	hotelling_license VARCHAR(255),
 	account_number VARCHAR(512),

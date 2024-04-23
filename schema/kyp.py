@@ -8,6 +8,7 @@ class KYP(db.Base):
 
     user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True, unique=True,nullable=False)
     pan_number = Column(String)
+    aadhar_number = Column(String)
     aadhar_photo_path = Column(String)
     hotelling_license = Column(String)
     account_number = Column(String)

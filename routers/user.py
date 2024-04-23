@@ -102,11 +102,13 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 @router.get("/logged")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return {"status": "Error", "message": "user not logged in", "alert": False}
+        return 
+        #return {"status": "Error", "message": "user not logged in", "alert": False}
 
     u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
-        return {"status": "Error", "message": "user not found", "alert": False}
+        return 
+        #return {"status": "Error", "message": "user not found", "alert": False}
     
     user_details = user.UserWithoutPassword(
         user_id=u.user_id,
@@ -122,16 +124,19 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
         role=u.role
     )
 
-    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    return user_details
 
 @router.get("/logged_customer")
 def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
+        #return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
+        return
 
-    u = db.query(UserTable).filter(UserTable.cookie == auth).first()
+    u = db.query(UserTable).filter(and_(UserTable.cookie == auth ,UserTable.role == "customer")).first()
     if not u:
-        return {"status": "Error", "message": "user not found", "alert": False}
+        #return {"status": "Error", "message": "user not found", "alert": False}
+        return
     
     user_details = user.UserWithoutPassword(
         user_id=u.user_id,
@@ -147,16 +152,19 @@ def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db))
         role=u.role
     )
 
-    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    return user_details
 
 @router.get('/logged_partner')
 def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
+        return None
+        #return {"status": "Error", "message": "user not logged in", "alert": False}   # Redirect to login
 
     u = db.query(UserTable).filter(and_(UserTable.cookie == auth ,UserTable.role == "partner")).first()
     if not u:
-        return {"status": "Error", "message": "user not found", "alert": False}
+        return None
+        #return {"status": "Error", "message": "user not found", "alert": False}
     
     user_details = user.UserWithoutPassword(
         user_id=u.user_id,
@@ -172,10 +180,30 @@ def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
         role=u.role
     )
     
-    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    return user_details
+    #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+
+@router.post('/change_password')
+def change_password(old_password,new_password, user = Depends(get_logged_user),db: Session = Depends(get_db)):
+    u = db.query(UserTable).filter(UserTable.user_id == user.user_id).first()
+    
+    # Concatenate the password and salt
+    hashed_password = hashlib.sha256((new_password + u.salt).encode()).hexdigest()
+
+    old_hashed_password = hashlib.sha256((old_password + u.salt).encode()).hexdigest()
+
+    if old_hashed_password != u.password:
+        return {"status": "Error", "message": "Incorrect password", "alert": True}
+
+    stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(password=hashed_password)
+    db.execute(stmt)
+    db.commit()
+
+    return {"status": "OK", "message": "Changed password successfully", "alert": False}
+
 
 @router.post('/edit_profile')
-def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get_logged_customer),db: Session = Depends(get_db)):
+def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Session = Depends(get_db)):
     # file_path = os.path.join(UPLOAD_FOLDER, profile.profile_img.filename)
     # with open(file_path, "wb") as buffer:
     #     buffer.write(profile.profile_img.read())
@@ -197,13 +225,12 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_partner or get
     return {"status": "OK", "message": "Edited profile successfully", "alert": False}
 
 
-@router.post('/kyp')
+@router.post('/kyp_other_data')
 def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     k = KYPTable(
         user_id = partner.user_id,
         pan_number = kyp.pan_number,
-        aadhar_photo_path = kyp.aadhar_photo_path,
-        hotelling_license = kyp.hotelling_license,
+        aadhar_number = kyp.aadhar_number,
         account_number = kyp.account_number,
         ifsc_code = kyp.ifsc_code
     )
@@ -213,7 +240,22 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
     db.refresh()
 
     return {"status": "OK", "message": "KYP is successfull", "alert": False}
+
+@router.post('kyp_aadhar')
+def add_aadhar(aadhar_photo,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(aadhar_photo_path = aadhar_photo)
+    db.execute(stmt)
+    db.commit()
+
+    return {"status": "OK", "message": "Aadhar added", "alert": False}
     
+@router.post('kyp_hotel_license')
+def add_aadhar(hotel_license,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(hotelling_license = hotel_license)
+    db.execute(stmt)
+    db.commit()
+
+    return {"status": "OK", "message": "Hotelling license added", "alert": False}
 
 @router.get('/get_kyp')
 def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
@@ -229,5 +271,15 @@ def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db))
 def logout(res: Response):
     res.delete_cookie(key="auth")
     return {"status": "OK", "message": "logout successful", "alert": False}
+
+@router.get("/delete_account")
+def delete_account(user = Depends(get_logged_user),db: Session = Depends(get_db)):
+    
+    db.delete(db.query(UserTable).filter(UserTable.user_id == user.user_id).first())
+    db.commit()
+
+    return {"status": "OK", "message": "account deleted", "alert": False}
+
+
     
 

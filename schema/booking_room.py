@@ -12,6 +12,6 @@ class BookingRoom(db.Base):
     number_of_rooms = Column(Integer, nullable=False)
     
     __table_args__ = (
-        PrimaryKeyConstraint('booking_id', 'room_id')
+        PrimaryKeyConstraint('booking_id', 'room_id'),
     )
     
