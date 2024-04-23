@@ -67,9 +67,19 @@ def get_available_rooms(hotel_id, date_range: hotel.DateRange,db: Session = Depe
 
 # need to test properly
 @router.post('/{query}')
-def get_hotels(query: str, db: Session = Depends(get_db)):
+def get_hotels(query: str, user = Depends(get_logged_customer), db: Session = Depends(get_db)):
     h = db.query(HotelTable).filter(or_(HotelTable.city == query, HotelTable.hotel_name == query, HotelTable.locality == query )).all()
     hotel_obj = []
+
+    if user is not None:
+        w = db.query(Wishlist).filter(Wishlist.user_id == user.user_id).all()
+        if not w:
+            is_present = False
+        else:
+            is_present = True
+
+    else:
+        is_present = False
 
     if not h:
         return {"status": "Error", "message": "No results", "alert": True}
@@ -82,23 +92,18 @@ def get_hotels(query: str, db: Session = Depends(get_db)):
         lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
         photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
 
-        if not lowest_price:
-            lowest_price = 0
-        
-        if not rating:
-            rating = 0
-        
-        if not photo:
-            photo = ""
+        if is_present:
+            is_present = any(item.hotel_id == hotel_row.hotel_id for item in w)
 
         obj = hotel.HotelSearch(
             hotel_id = hotel_row.hotel_id,
             address = hotel_row.address,
             amenities = str(hotel_row.amenities),
             hotel_name = hotel_row.hotel_name,
-            lowest_price = lowest_price,
-            rating=rating,
-            img_path=photo
+            lowest_price = lowest_price if lowest_price is not None else 0,
+            rating = rating if rating is not None else 0,
+            img_path = photo[0] if photo is not None else "",  
+            is_wishlisted = is_present
         )
         
         hotel_obj.append(obj)
@@ -182,7 +187,7 @@ def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: S
 
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
+    #w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
 
     w = (
         db.query(Wishlist,HotelTable).join(HotelTable, Wishlist.hotel_id == HotelTable.hotel_id)
@@ -199,23 +204,15 @@ def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(
         lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
         photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
 
-        if not lowest_price:
-            lowest_price = 0
-        
-        if not rating:
-            rating = 0
-        
-        if not photo:
-            photo = ""
-
         obj = hotel.HotelSearch(
             hotel_id = hotel_row.hotel_id,
             address = hotel_row.address,
             amenities = str(hotel_row.amenities),
             hotel_name = hotel_row.hotel_name,
-            lowest_price = lowest_price,
-            rating=rating,
-            img_path=photo
+            lowest_price = lowest_price if lowest_price is not None else 0,
+            rating = rating if rating is not None else 0,
+            img_path = photo[0] if photo is not None else "",  
+            is_wishlisted = True
         )
         
         hotel_obj.append(obj)

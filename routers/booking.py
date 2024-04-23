@@ -9,6 +9,7 @@ from schema.user import User as UserTable
 from schema.booking import Booking as BookingTable
 from schema.booking_guest import BookingGuest
 from schema.guest_profile import GuestProfile
+from schema.review import Review as ReviewTable
 from schema.booking_room import BookingRoom
 from routers.search import get_available_rooms
 from routers.user import get_logged_partner,get_logged_customer
@@ -155,10 +156,36 @@ def get_booking_details(booking_id,customer = Depends(get_logged_customer), db: 
 
 @router.get('/past_bookings')
 def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    b = db.query(BookingTable).filter(BookingTable.user_id == customer.user_id).all()
+    b = ( 
+            db.query(BookingTable,ReviewTable,HotelTable)
+            .join(ReviewTable, BookingTable.booking_id == ReviewTable.booking_id)
+            .join(HotelTable, BookingTable.hotel_id == HotelTable.hotel_id)
+            .filter(BookingTable.user_id == customer.user_id).all()
+        )
+
     if not b:
         return {"status": "Error", "message": "no past bookings", "alert": True}
     
-    return {"status": "OK", "message": "past bookings found", "alert": False, "past_bookings": b}
+    bookings = []
+
+    for item in b:
+      
+        book = booking.PastBooking(
+            booking_id=item.booking_id,
+            hotel_id=item.hotel_id,
+            hotel_name=item.hotel_name,
+            hotel_location=item.address,
+            check_in_date=item.check_in_date,
+            check_out_date=item.check_out_date,
+            bill=item.bill,
+            reviewExists=True if item.description is not None else False,
+            review=item.description if item.description is not None else "",
+            rating= item.rating if item.rating is not None else 0
+        )
+
+        bookings.append(book)
+
+    
+    return {"status": "OK", "message": "past bookings found", "alert": False, "past_bookings": bookings}
 
 

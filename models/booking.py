@@ -22,7 +22,24 @@ class RoomDetails(BaseModel):
 #     guests: List[int]
 #     transaction_id: int
     
-
+# class BookingGuest(BaseModel):
+#     guest_id: int
+#     guest_name: str
+#     gender: str
+#     age: int
+    
+class PastBooking(BaseModel):
+    booking_id: int
+    hotel_id: int
+    hotel_name: str
+    hotel_location: str
+    check_in_date: str
+    check_out_date: str
+    bill: float
+    reviewExists: bool
+    review: str
+    rating: int
+    
 class BookingDetails(BaseModel):
     hotel_id: int
     date_range: DateRange
@@ -30,7 +47,6 @@ class BookingDetails(BaseModel):
     guests: List[int]
     bill: float
     transaction_id: int
-
 
 class Review(BaseModel):
     booking_id: int

@@ -42,6 +42,7 @@ class HotelSearch(BaseModel):
     lowest_price: float
     rating: int
     img_path: str
+    is_wishlisted: bool
 
 class HotelPage(BaseModel):
     hotel_name: str
