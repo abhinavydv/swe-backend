@@ -44,7 +44,8 @@ def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get
             key='auth',
             value=cookie,
             max_age=60 * 60 * 24,
-            samesite="lax",
+            samesite="none",
+            secure=True
         )
         u.cookie = cookie
         stmt = update(UserTable).where(UserTable.user_id == u.user_id).values(cookie=cookie)
@@ -124,8 +125,8 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
         role=u.role
     )
 
-    #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
-    return user_details
+    return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
+    # return user_details
 
 @router.get("/logged_customer")
 def get_logged_customer(auth: str = Cookie(None), db: Session = Depends(get_db)):
