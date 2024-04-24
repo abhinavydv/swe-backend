@@ -7,8 +7,8 @@ class Booking(db.Base):
     __tablename__ = "bookings"
 
     booking_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True,nullable=False)
-    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"), unique=True,nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"), nullable=False)
     amount = Column(Float, nullable=False)
     from_date = Column(Date,nullable=False)
     to_date = Column(Date,nullable=False)

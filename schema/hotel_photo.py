@@ -7,7 +7,7 @@ class HotelPhoto(db.Base):
     __tablename__ = "hotel_photos"
 
     photo_id = Column(Integer, primary_key=True, index=True)
-    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"), unique=True,nullable=False)
+    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"), nullable=False)
     photo_url = Column(String, nullable=False)
  
     

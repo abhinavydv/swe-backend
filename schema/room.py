@@ -7,7 +7,7 @@ class Room(db.Base):
     __tablename__ = "rooms"
 
     room_id = Column(Integer, primary_key=True, index=True)
-    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"), unique=True,nullable=False)
+    hotel_id = Column(Integer, ForeignKey("hotels.hotel_id"),nullable=False)
     room_type = Column(Integer, nullable=False)
     bed_type = Column(String)
     max_occupancy = Column(Integer)

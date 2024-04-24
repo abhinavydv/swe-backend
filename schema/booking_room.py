@@ -6,8 +6,8 @@ from sqlalchemy import Column, Integer, ForeignKey, PrimaryKeyConstraint
 class BookingRoom(db.Base):
     __tablename__ = "booking_rooms"
 
-    booking_id = Column(Integer, ForeignKey("bookings.booking_id"), unique=True,nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.room_id"), unique=True,nullable=False)
+    booking_id = Column(Integer, ForeignKey("bookings.booking_id"),nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.room_id"),nullable=False)
     room_type = Column(Integer,nullable=False)
     number_of_rooms = Column(Integer, nullable=False)
     

@@ -7,7 +7,7 @@ class Hotel(db.Base):
     __tablename__ = "hotels"
 
     hotel_id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.user_id"), unique=True,nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.user_id"),nullable=False)
     hotel_name = Column(String, nullable=False)
     property_paper_path = Column(String)
     description = Column(String)

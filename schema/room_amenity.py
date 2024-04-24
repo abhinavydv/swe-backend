@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, PrimaryKeyConstraint
 class RoomAmenity(db.Base):
     __tablename__ = "room_amenities"
 
-    room_id = Column(Integer, ForeignKey("rooms.room_id"), unique=True,nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.room_id"),nullable=False)
     amenity = Column(String,nullable=False)
     quality = Column(String)  # good, bad
 
