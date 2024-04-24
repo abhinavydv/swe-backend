@@ -185,13 +185,15 @@ def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
     return user_details
     #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
 
-#works
+#works - check if it can take 2 inputs from frontend. Prolly not
 @router.post('/change_password')
 def change_password(old_password,new_password, user = Depends(get_logged_user),db: Session = Depends(get_db)):
-    u = db.query(UserTable).filter(UserTable.user_id == user.user_id).first()
-
     if user is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
+    
+    user = user["user"]
+
+    u = db.query(UserTable).filter(UserTable.user_id == user.user_id).first()
 
     # Concatenate the password and salt
     hashed_password = hashlib.sha256((new_password + u.salt).encode()).hexdigest()
@@ -216,6 +218,8 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Sess
 
     if user is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
+    
+    user = user["user"]
     
     stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(
         first_name = profile.first_name,
@@ -255,7 +259,7 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
 
 # not tested
 @router.post('/kyp_aadhar')
-def add_aadhar(aadhar_photo,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+def add_aadhar(aadhar_photo:str,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(aadhar_photo_path = aadhar_photo)
@@ -266,7 +270,7 @@ def add_aadhar(aadhar_photo,partner = Depends(get_logged_partner),db: Session = 
 
 # not tested   
 @router.post('/kyp_hotel_license')
-def add_aadhar(hotel_license,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+def add_aadhar(hotel_license:str,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
@@ -298,7 +302,9 @@ def logout(res: Response):
 # not tested
 @router.get("/delete_account")
 def delete_account(user = Depends(get_logged_user),db: Session = Depends(get_db)):
-    
+    if user is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
+    user = user["user"]
     db.delete(db.query(UserTable).filter(UserTable.user_id == user.user_id).first())
     db.commit()
 
