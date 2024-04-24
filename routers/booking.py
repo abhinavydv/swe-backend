@@ -128,7 +128,6 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
     return {"status": "OK", "message": "booking successful", "alert": False}
 
 
-
 @router.post('/cancel')
 def cancel_booking(booking_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id,BookingTable.user_id == customer.user_id)).first()
@@ -154,6 +153,7 @@ def get_booking_details(booking_id,customer = Depends(get_logged_customer), db: 
     
     return {"status": "OK", "message": "booking found", "alert": False, "booking": b}
 
+# need to test more once booking data is added.
 @router.get('/past_bookings')
 def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     b = ( 
@@ -168,19 +168,19 @@ def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Dep
     
     bookings = []
 
-    for item in b:
+    for book,rev,h in b:
       
         book = booking.PastBooking(
-            booking_id=item.booking_id,
-            hotel_id=item.hotel_id,
-            hotel_name=item.hotel_name,
-            hotel_location=item.address,
-            check_in_date=item.check_in_date,
-            check_out_date=item.check_out_date,
-            bill=item.bill,
-            reviewExists=True if item.description is not None else False,
-            review=item.description if item.description is not None else "",
-            rating= item.rating if item.rating is not None else 0
+            booking_id=book.booking_id,
+            hotel_id=h.hotel_id,
+            hotel_name=h.hotel_name if h.hotel_name else "",
+            hotel_location=h.address if h.address else "",
+            check_in_date=str(book.from_date) if book.from_date else "",
+            check_out_date=str(book.to_date) if book.to_date else "",
+            bill=book.bill if book.bill else 0,
+            reviewExists=True if rev.description is not None else False,
+            review=rev.description if rev.description is not None else "",
+            rating= rev.rating if rev.rating is not None else 0
         )
 
         bookings.append(book)

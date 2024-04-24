@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session,joinedload
 from sqlalchemy import func,text,or_,and_
 from config.db import get_db
 from models import hotel
+from datetime import datetime
 from schema.hotel import Hotel as HotelTable
 from schema.room import Room as RoomTable
 from schema.user import User as UserTable
@@ -20,54 +21,86 @@ router = APIRouter(
 )
 
 # Need to test properly
-def get_available_rooms(hotel_id, date_range: hotel.DateRange,db: Session = Depends(get_db)):
-    query = text(
-        """ SELECT 
-                rooms.* , 
-                total_rooms - COALESCE((
-                SELECT SUM(number_of_rooms) 
-                FROM booking_rooms 
-                JOIN bookings ON booking_rooms.booking_id = bookings.booking_id 
-                WHERE bookings.hotel_id = :hotel_id 
-                AND (
-                    bookings.check_in_date BETWEEN :start_date AND :end_date
-                    OR bookings.check_out_date BETWEEN :start_date AND :end_date
-                    OR :start_date BETWEEN bookings.check_in_date AND bookings.check_out_date
-                ) 
-                AND booking_rooms.room_id = rooms.room_id
-                GROUP BY booking_rooms.room_id
-            ), 0) AS number_of_available_rooms
-            FROM rooms 
-            WHERE hotel_id = :hotel_id
-            AND total_rooms > (
-                SELECT COALESCE(SUM(number_of_rooms), 0) 
-                FROM booking_rooms 
-                JOIN bookings ON booking_rooms.booking_id = bookings.booking_id 
-                WHERE bookings.hotel_id = :hotel_id 
-                AND (
-                    bookings.check_in_date BETWEEN :start_date AND :end_date
-                    OR bookings.check_out_date BETWEEN :start_date AND :end_date
-                    OR :start_date BETWEEN bookings.check_in_date AND bookings.check_out_date
-                ) 
-                GROUP BY booking_rooms.room_id
-            ); """
-        )
+def get_available_rooms(hotel_id,start_date,end_date,db):
+    # query = text(
+    #     """ SELECT 
+    #             rooms.* , 
+    #             total_rooms - (SELECT COALESCE(SUM(number_of_rooms),0) 
+    #             FROM booking_rooms 
+    #             JOIN bookings ON booking_rooms.booking_id = bookings.booking_id 
+    #             WHERE bookings.hotel_id = :hotel_id 
+    #             AND (
+    #                 bookings.from_date BETWEEN :start_date AND :end_date
+    #                 OR bookings.to_date BETWEEN :start_date AND :end_date
+    #                 OR :start_date BETWEEN bookings.from_date AND bookings.to_date
+    #             ) 
+    #             AND booking_rooms.room_id = rooms.room_id
+    #             GROUP BY booking_rooms.room_id
+    #         ) AS number_of_available_rooms
+    #         FROM rooms 
+    #         WHERE hotel_id = :hotel_id
+    #         AND total_rooms > (
+    #             SELECT COALESCE(SUM(number_of_rooms), 0) 
+    #             FROM booking_rooms 
+    #             JOIN bookings ON booking_rooms.booking_id = bookings.booking_id 
+    #             WHERE bookings.hotel_id = :hotel_id 
+    #             AND (
+    #                 bookings.from_date BETWEEN :start_date AND :end_date
+    #                 OR bookings.to_date BETWEEN :start_date AND :end_date
+    #                 OR :start_date BETWEEN bookings.from_date AND bookings.to_date
+    #             ) 
+    #             GROUP BY booking_rooms.room_id
+    #         ); """
+    #     )
     
-        # Parameters for the query
+    query = text("""
+                    SELECT 
+                        rooms.*,
+                        total_rooms - COALESCE(sub.total_booked_rooms, 0) AS number_of_available_rooms
+                    FROM 
+                        rooms 
+                    LEFT JOIN (
+                        SELECT 
+                            booking_rooms.room_id,
+                            SUM(number_of_rooms) AS total_booked_rooms
+                        FROM 
+                            booking_rooms 
+                        JOIN 
+                            bookings ON booking_rooms.booking_id = bookings.booking_id 
+                        WHERE 
+                            bookings.hotel_id = :hotel_id 
+                            AND (
+                                bookings.from_date BETWEEN :start_date AND :end_date
+                                OR bookings.to_date BETWEEN :start_date AND :end_date
+                                OR :start_date BETWEEN bookings.from_date AND bookings.to_date
+                            ) 
+                        GROUP BY 
+                            booking_rooms.room_id
+                    ) AS sub ON rooms.room_id = sub.room_id
+                    WHERE 
+                        rooms.hotel_id = :hotel_id
+                        AND rooms.total_rooms > COALESCE(sub.total_booked_rooms, 0);
+                """)
+    
+    # Parameters for the query
     params = {
         "hotel_id": hotel_id,
-        "start_date": date_range.start_date,
-        "end_date": date_range.end_date
+        "start_date": start_date,
+        "end_date": end_date
     }
 
-    avail_rooms = db.execute(query, params)
+    avail_rooms = db.execute(query, params).fetchall()
 
     return avail_rooms
 
+# Function to convert a list of SQLAlchemy RoomAmenity objects to a list of Pydantic RoomAmenities objects
+def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
+    return [hotel.RoomAmenities(**amenity.__dict__) for amenity in amenities]
+
 
 # need to test properly
-@router.post('/{query}')
-def get_hotels(query: str, user = Depends(get_logged_customer), db: Session = Depends(get_db)):
+@router.post('/no_filter')
+def get_hotels(query: str, user = Depends(get_logged_customer),db: Session = Depends(get_db)):
     h = db.query(HotelTable).filter(or_(HotelTable.city == query, HotelTable.hotel_name == query, HotelTable.locality == query )).all()
     hotel_obj = []
 
@@ -114,50 +147,66 @@ def get_hotels(query: str, user = Depends(get_logged_customer), db: Session = De
     return {"status": "OK", "message": "Found hotels", "alert": False, "hotels" : hotel_obj}
     
 
-@router.post('/filters')
-def get_hotels_with_filters():
-    pass
+# @router.post('/filters')
+# def get_hotels_with_filters():
+#     pass
 
 # need to test properly
+# works - need to test more once booking data is added
 @router.post('/get_hotel_page')
 def get_hotel_page(hotel_id, date_range: hotel.DateRange,db: Session = Depends(get_db)):
     h = db.query(HotelTable).filter(hotel_id == HotelTable.hotel_id).first()
-
+    
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
     hotel_photos = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_id).all()
 
-    avail_rooms = get_available_rooms(hotel_id,date_range,db)
+    if hotel_photos is None:
+        hotel_photos = []
+    else:
+        hotel_photos = [photo[0] for photo in hotel_photos]
+
+    start_date = datetime.strptime(date_range.start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(date_range.end_date,"%Y-%m-%d")
+
+    avail_rooms = get_available_rooms(hotel_id,start_date,end_date,db)
 
     available_rooms = []
 
+    if not avail_rooms:
+        return {"status": "Error", "message": "No rooms available", "alert": True}
+
     for room in avail_rooms:
         a = db.query(RoomAmenity).filter(RoomAmenity.room_id == room.room_id).all()
+
         r = hotel.Room(
-            bed_type = room.bed_type,
-            max_occupancy = room.max_occupancy,
-            price = room.price,
+            bed_type = room.bed_type if room.bed_type else "",
+            number_of_rooms=room.number_of_available_rooms,
+            max_occupancy = room.max_occupancy if room.max_occupancy else 0,
+            price = room.price if room.price else 0,
             room_type = room.room_type,
-            amenities = a
+            amenities = convert_room_amenities(a) if a is not None else []
         )
         
         available_rooms.append(r)
     
     h_page = hotel.HotelPage(
-        hotel_name = h.hotel_name,
-        amenities = h.amenities,
-        description = h.description,
+        hotel_name = h.hotel_name if h.hotel_name else "",
+        amenities = str(h.amenities) if h.amenities else "",
+        description = h.description if h.description else "",
         available_rooms = available_rooms,
-        photos = hotel_photos
+        photos = hotel_photos 
     )
     
     return {"status": "OK", "message": "Found hotel details", "alert": False, "hotel_page" : h_page}
 
+#works
 @router.post('/add_to_wishlist')
-def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+def add_to_wishlist(hotel_id,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
+    
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
@@ -168,14 +217,16 @@ def add_to_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Sessio
 
     db.add(w)
     db.commit()
-    db.refresh()
+    db.refresh(w)
 
     return {"status": "OK", "message": "added to wishlist successfully", "alert": False}
 
+#works
 @router.post('/delete_from_wishlist')
 def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
+    
     if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
@@ -189,6 +240,7 @@ def delete_from_wishlist(hotel_id, customer = Depends(get_logged_customer),db: S
 
     return {"status": "OK", "message": "deleted wishlist entry successfully", "alert": False}
 
+# Works
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     #w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
@@ -205,16 +257,16 @@ def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(
     
     hotel_obj = []
     
-    for hotel_row in w:
+    for _,hotel_row in w:
         rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_row.hotel_id).scalar()
         lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
         photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
 
         obj = hotel.HotelSearch(
             hotel_id = hotel_row.hotel_id,
-            address = hotel_row.address,
-            amenities = str(hotel_row.amenities),
-            hotel_name = hotel_row.hotel_name,
+            address = hotel_row.address if hotel_row.address else "",
+            amenities = str(hotel_row.amenities) if hotel_row.amenities else "",
+            hotel_name = hotel_row.hotel_name if hotel_row.hotel_name else "",
             lowest_price = lowest_price if lowest_price is not None else 0,
             rating = rating if rating is not None else 0,
             img_path = photo[0] if photo is not None else "",  
