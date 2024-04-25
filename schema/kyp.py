@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 class KYP(db.Base):
     __tablename__ = "kyp"
 
-    user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True, unique=True,nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True,nullable=False)
     pan_number = Column(String)
     aadhar_number = Column(String)
     aadhar_photo_path = Column(String)

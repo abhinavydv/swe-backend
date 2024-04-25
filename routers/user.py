@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Response, Cookie
+from fastapi import UploadFile,File
 from sqlalchemy import update,or_,and_
 from sqlalchemy.orm import Session
 from config.db import get_db
+from config.gdrive import create_file,delete_file,get_file
 from models import user
 from schema.user import User as UserTable
 from schema.kyp import KYP as KYPTable
@@ -12,15 +14,13 @@ import secrets
 import os
 
 # Email verification using OTP
-# Saving images and documents in a folder and their paths in db
-
 
 router = APIRouter(
     prefix="/users",
     tags=["users"],
 )
 
-UPLOAD_FOLDER = "uploads/profile_images"
+UPLOAD_FOLDER = "uploads"
 
 def generate_cookie(user_id, email_id):
     secret = secrets.token_bytes(256)
@@ -185,9 +185,9 @@ def get_logged_partner(auth: str = Cookie(None), db: Session = Depends(get_db)):
     return user_details
     #return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
 
-#works - check if it can take 2 inputs from frontend. Prolly not
+# works 
 @router.post('/change_password')
-def change_password(old_password,new_password, user = Depends(get_logged_user),db: Session = Depends(get_db)):
+def change_password(passwords: user.ChangePassword, user = Depends(get_logged_user),db: Session = Depends(get_db)):
     if user is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
@@ -196,9 +196,9 @@ def change_password(old_password,new_password, user = Depends(get_logged_user),d
     u = db.query(UserTable).filter(UserTable.user_id == user.user_id).first()
 
     # Concatenate the password and salt
-    hashed_password = hashlib.sha256((new_password + u.salt).encode()).hexdigest()
+    hashed_password = hashlib.sha256((passwords.new_password + u.salt).encode()).hexdigest()
 
-    old_hashed_password = hashlib.sha256((old_password + u.salt).encode()).hexdigest()
+    old_hashed_password = hashlib.sha256((passwords.old_password + u.salt).encode()).hexdigest()
 
     if old_hashed_password != u.password:
         return {"status": "Error", "message": "Incorrect password", "alert": True}
@@ -209,13 +209,9 @@ def change_password(old_password,new_password, user = Depends(get_logged_user),d
 
     return {"status": "OK", "message": "Changed password successfully", "alert": False}
 
-# not tested
+# works
 @router.post('/edit_profile')
 def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Session = Depends(get_db)):
-    # file_path = os.path.join(UPLOAD_FOLDER, profile.profile_img.filename)
-    # with open(file_path, "wb") as buffer:
-    #     buffer.write(profile.profile_img.read())
-
     if user is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
@@ -229,7 +225,6 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Sess
         phone_number = profile.phone_number,
         gender = profile.gender,
         nationality = profile.nationality,
-        profile_image_path = profile.profile_img
     )
 
     db.execute(stmt)
@@ -237,7 +232,36 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Sess
 
     return {"status": "OK", "message": "Edited profile successfully", "alert": False}
 
-# not tested
+# works
+@router.post('/add_profile_photo')
+def add_profile_photo(photo: UploadFile = File(...), user = Depends(get_logged_user),db: Session = Depends(get_db)):
+    if user is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
+    user = user["user"]
+
+    if not photo:
+        return {"status": "Error", "message": "file not found", "alert": True}
+
+    # Create destination folder if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER + "/profile_photos", exist_ok=True)
+    
+    file_path = os.path.join(UPLOAD_FOLDER + "/profile_photos", photo.filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(photo.file.read())
+
+    image_path = create_file(photo.filename, file_path)
+
+    #os.remove(file_path)
+
+    stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(profile_image_path = image_path)
+    db.execute(stmt)
+
+    db.commit()
+
+    return {"status": "OK", "message": "added photo", "alert": False}
+
+
+# works
 @router.post('/kyp_other_data')
 def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
@@ -253,34 +277,63 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
 
     db.add(k)
     db.commit()
-    db.refresh()
+    db.refresh(k)
 
     return {"status": "OK", "message": "KYP is successfull", "alert": False}
 
-# not tested
+# works
 @router.post('/kyp_aadhar')
-def add_aadhar(aadhar_photo:str,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+def add_aadhar(aadhar_photo: UploadFile = File(...), partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(aadhar_photo_path = aadhar_photo)
+    
+    if not aadhar_photo:
+        return {"status": "Error", "message": "file not found", "alert": True}
+
+    # Create destination folder if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER + "/aadhar_photos", exist_ok=True)
+    
+    file_path = os.path.join(UPLOAD_FOLDER + "/aadhar_photos", aadhar_photo.filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(aadhar_photo.file.read())
+
+    image_path = create_file(aadhar_photo.filename, file_path)
+
+    #os.remove(file_path)
+    
+    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(aadhar_photo_path = image_path)
     db.execute(stmt)
     db.commit()
 
     return {"status": "OK", "message": "Aadhar added", "alert": False}
 
-# not tested   
+# works  
 @router.post('/kyp_hotel_license')
-def add_aadhar(hotel_license:str,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+def add_aadhar(hotel_license: UploadFile = File(...) , partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(hotelling_license = hotel_license)
+    if not hotel_license:
+        return {"status": "Error", "message": "file not found", "alert": True}
+
+    # Create destination folder if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER + "/hotel_license", exist_ok=True)
+    
+    file_path = os.path.join(UPLOAD_FOLDER + "/hotel_license", hotel_license.filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(hotel_license.file.read())
+
+    doc_path = create_file(hotel_license.filename, file_path)
+
+    #os.remove(file_path)
+    
+    stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(hotelling_license = doc_path)
     db.execute(stmt)
     db.commit()
 
     return {"status": "OK", "message": "Hotelling license added", "alert": False}
 
-# not tested
+# works
 @router.get('/get_kyp')
 def get_kyp(partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
@@ -300,6 +353,7 @@ def logout(res: Response):
     return {"status": "OK", "message": "logout successful", "alert": False}
 
 # not tested
+# if partner deleted all hotels also deleted ?? Delete profile photos, kyp docs, hotel docs
 @router.get("/delete_account")
 def delete_account(user = Depends(get_logged_user),db: Session = Depends(get_db)):
     if user is None:

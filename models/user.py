@@ -34,8 +34,7 @@ class Profile(BaseModel):
     phone_number: str
     gender: str
     nationality: str
-    profile_img: str
-
+    
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -45,3 +44,7 @@ class KYP(BaseModel):
     aadhar_number: str
     account_number: str
     ifsc_code: str
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
