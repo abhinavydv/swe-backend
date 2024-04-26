@@ -1,19 +1,6 @@
 from pydantic import BaseModel
 from typing import List
-
-
-class Hotel(BaseModel):
-    hotel_name: str
-    property_paper_path: str
-    description: str
-    pincode: str
-    locality: str
-    address: str
-    city: str
-    state: str
-    country: str
-    amenities: str
-    tag_list: str
+from fastapi import UploadFile,File
 
 class RoomAmenities(BaseModel):
     amenity: str
@@ -27,12 +14,32 @@ class Room(BaseModel):
     price: float
     amenities: List[RoomAmenities]
 
+class Hotel(BaseModel):
+    hotel_name: str
+    description: str
+    pincode: str
+    locality: str
+    address: str
+    city: str
+    state: str
+    country: str
+    amenities: str
+    tag_list: str
+    rooms: List[Room]
+
+class PropertyPaper(BaseModel):
+    hotel_id: int
+    property_paper: UploadFile = File(...)
+
+class HotelPhotos(BaseModel):
+    hotel_id: int
+    photos: List[UploadFile]
+
 class HotelStatistics(BaseModel):
     avg_rating: int
     total_bookings: int
     earnings: float
     days_of_stay: int
-
 
 class HotelSearch(BaseModel):
     hotel_id: int
@@ -61,15 +68,15 @@ class HotelPageQuery(BaseModel):
 
 class SearchQuery(BaseModel):
     text: str
-    date_range: str | DateRange
+    date_range: str
 
 class GetHotel(BaseModel):
     hotel_id: int
-    date_range: DateRange
+    date_range: str
 
 class SearchQueryWithFilter(BaseModel):
     text: str
-    date_range: DateRange
+    date_range: str
     filters: str
 
 class HotelId(BaseModel):

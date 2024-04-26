@@ -16,6 +16,8 @@ router = APIRouter(
 
 @router.post('/submit_review')
 def submit_review(review: booking.Review, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     b = db.query(BookingTable).filter(BookingTable.booking_id == review.booking_id and BookingTable.user_id == customer.user_id).first()
 
     if not b:
@@ -40,6 +42,8 @@ def submit_review(review: booking.Review, customer = Depends(get_logged_customer
 
 @router.post('/delete_review')
 def delete_review(review_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     rev = db.query(ReviewTable).filter(ReviewTable.review_id == review_id and ReviewTable.user_id == customer.user_id).first()
 
     if not rev:
@@ -52,6 +56,8 @@ def delete_review(review_id, customer = Depends(get_logged_customer), db: Sessio
 
 @router.post('/get_review')
 def get_review(booking_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    if customer is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     rev = db.query(ReviewTable).filter(ReviewTable.booking_id == booking_id and ReviewTable.user_id == customer.user_id).first()
 
     if not rev:
@@ -62,6 +68,9 @@ def get_review(booking_id, customer = Depends(get_logged_customer), db: Session 
 
 @router.get('/view_reviews')
 def get_all_reviews(hotel_id,partner = Depends(get_logged_partner), db: Session = Depends(get_db)):
+    if partner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
+    
     revs = db.query(ReviewTable).filter(ReviewTable.hotel_id == hotel_id and ReviewTable.user_id == partner.user_id).all()
 
     if not revs:
@@ -72,18 +81,20 @@ def get_all_reviews(hotel_id,partner = Depends(get_logged_partner), db: Session 
 
 @router.post('/get_statistics')
 def get_hotel_statistics(hotel_id,partner = Depends(get_logged_partner), db: Session = Depends(get_db)):
+    if partner is None:
+        return {"status": "Error", "message": "user not logged in", "alert": True}
     
     h = db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id and HotelTable.owner_id == partner.user_id).first()
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
-    h_stat = hotel.HotelStatistics()
+    h_stat = hotel.HotelStatistics(
+        avg_rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_id).scalar(),
+        total_bookings = db.query(func.count(BookingTable.booking_id)).filter(BookingTable.hotel_id == hotel_id).scalar(),
+        earnings = db.query(func.sum(BookingTable.amount)).filter(BookingTable.hotel_id == hotel_id).scalar(),
+        days_of_stay = db.query(func.sum(func.age(BookingTable.check_out_date - BookingTable.check_in_date))).filter(BookingTable.hotel_id == hotel_id).scalar()
+    )
     
-    h_stat.avg_rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_id).scalar()
-    h_stat.total_bookings = db.query(func.count(BookingTable.booking_id)).filter(BookingTable.hotel_id == hotel_id).scalar()
-    h_stat.earnings = db.query(func.sum(BookingTable.amount)).filter(BookingTable.hotel_id == hotel_id).scalar()
-    h_stat.days_of_stay = db.query(func.sum(func.age(BookingTable.check_out_date - BookingTable.check_in_date))).filter(BookingTable.hotel_id == hotel_id).scalar()
-
     return {"status": "OK", "message": "statistics calculated", "alert": False, "statistics": h_stat}
     
     

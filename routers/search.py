@@ -149,9 +149,55 @@ def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer), db
     return {"status": "OK", "message": "Found hotels", "alert": False, "hotels" : hotel_obj}
     
 
-# @router.post('/filters')
-# def get_hotels_with_filters():
-#     pass
+@router.post('/filters')
+def get_hotels_with_filters(query: hotel.SearchQueryWithFilter, user = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    filter_value = int(query.filters, 2)
+    
+    h = db.query(HotelTable).filter(
+        or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text)).filter(
+            (HotelTable.amenities.op('&')(filter_value)) == filter_value).all()
+    hotel_obj = []
+    if user is not None:
+        w = db.query(Wishlist).filter(Wishlist.user_id == user.user_id).all()
+        if not w:
+            is_present = False
+        else:
+            is_present = True
+
+    else:
+        is_present = False
+
+    if not h:
+        return {"status": "Error", "message": "No results", "alert": True}
+    
+    for hotel_row in h:
+        # if not get_available_rooms(hotel_row.hotel_id, query.date_range, db):
+        #     continue
+        
+        rating = db.query(func.avg(ReviewTable.rating)).filter(ReviewTable.hotel_id == hotel_row.hotel_id).scalar()
+        lowest_price = db.query(func.min(RoomTable.price)).filter(RoomTable.hotel_id == hotel_row.hotel_id).scalar()
+        photo = db.query(PhotoTable.photo_url).filter(PhotoTable.hotel_id == hotel_row.hotel_id).first()
+
+        if is_present:
+            is_present = any(item.hotel_id == hotel_row.hotel_id for item in w)
+
+        obj = hotel.HotelSearch(
+            hotel_id = hotel_row.hotel_id,
+            address = hotel_row.address,
+            amenities = str(hotel_row.amenities),
+            hotel_name = hotel_row.hotel_name,
+            lowest_price = lowest_price if lowest_price is not None else 0,
+            rating = rating if rating is not None else 0,
+            img_path = photo[0] if photo is not None else "",  
+            is_wishlisted = is_present
+        )
+        
+        hotel_obj.append(obj)
+
+    if not hotel_obj:
+        return {"status": "Error", "message": "No results", "alert": True}
+
+    return {"status": "OK", "message": "Found hotels", "alert": False, "hotels" : hotel_obj}
 
 # need to test properly
 # works - need to test more once booking data is added
@@ -170,8 +216,10 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
     else:
         hotel_photos = [photo[0] for photo in hotel_photos]
 
-    start_date = datetime.strptime(query.date_range.start_date, "%Y-%m-%d")
-    end_date = datetime.strptime(query.date_range.end_date,"%Y-%m-%d")
+    dates = query.date_range.split('__')
+
+    start_date = datetime.strptime(dates[0], "%Y-%m-%d")
+    end_date = datetime.strptime(dates[1],"%Y-%m-%d")
 
     avail_rooms = get_available_rooms(query.hotel_id,start_date,end_date,db)
 

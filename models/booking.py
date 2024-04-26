@@ -7,6 +7,12 @@ class GuestProfile(BaseModel):
     gender: str
     age: int
 
+class EditGuestProfile(BaseModel):
+    guest_id: int
+    guest_name: str
+    gender: str
+    age: int
+
 class RoomDetails(BaseModel):
     room_type: int
     number_of_rooms: int
@@ -42,7 +48,7 @@ class PastBooking(BaseModel):
     
 class BookingDetails(BaseModel):
     hotel_id: int
-    date_range: DateRange
+    date_range: str
     rooms: List[RoomDetails]
     guests: List[int]
     bill: float
