@@ -69,6 +69,7 @@ def get_available_rooms(hotel_id,start_date,end_date,db):
                             bookings ON booking_rooms.booking_id = bookings.booking_id 
                         WHERE 
                             bookings.hotel_id = :hotel_id 
+                            AND (bookings.status = 0 OR bookings.status = 1)
                             AND (
                                 bookings.from_date BETWEEN :start_date AND :end_date
                                 OR bookings.to_date BETWEEN :start_date AND :end_date
@@ -101,8 +102,6 @@ def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
 # need to test properly
 @router.post('/')
 def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    print("Herererererererere")
-    print(query)
     h = db.query(HotelTable).filter(or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text )).all()
     hotel_obj = []
 
@@ -202,7 +201,6 @@ def get_hotels_with_filters(query: hotel.SearchQueryWithFilter, user = Depends(g
 # need to test properly
 # works - need to test more once booking data is added
 @router.post('/get_hotel_page')
-# def get_hotel_page(hotel_id: hotel.HotelId, date_range: hotel.DateRange,db: Session = Depends(get_db)):
 def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
     h = db.query(HotelTable).filter(query.hotel_id == HotelTable.hotel_id).first()
     
@@ -216,10 +214,8 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
     else:
         hotel_photos = [photo[0] for photo in hotel_photos]
 
-    dates = query.date_range.split('__')
-
-    start_date = datetime.strptime(dates[0], "%Y-%m-%d")
-    end_date = datetime.strptime(dates[1],"%Y-%m-%d")
+    start_date = datetime.strptime(query.date_range.start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(query.date_range.end_date,"%Y-%m-%d")
 
     avail_rooms = get_available_rooms(query.hotel_id,start_date,end_date,db)
 
@@ -255,15 +251,14 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
 #works
 @router.post('/add_to_wishlist')
 def add_to_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id.hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
     w = Wishlist(
-        hotel_id = hotel_id,
+        hotel_id = hotel_id.hotel_id,
         user_id = customer.user_id
     )
 
@@ -276,14 +271,13 @@ def add_to_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_custo
 #works
 @router.post('/delete_from_wishlist')
 def delete_from_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id).first():
+    if not db.query(HotelTable).filter(HotelTable.hotel_id == hotel_id.hotel_id).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
     
-    w = db.query(Wishlist).filter(and_(Wishlist.hotel_id == hotel_id, Wishlist.user_id == customer.user_id)).first()
+    w = db.query(Wishlist).filter(and_(Wishlist.hotel_id == hotel_id.hotel_id, Wishlist.user_id == customer.user_id)).first()
 
     if not w:
         return {"status": "Error", "message": "wishlist entry not found", "alert": True}
@@ -297,7 +291,6 @@ def delete_from_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     #w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
-    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
 

@@ -227,7 +227,7 @@ def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Sessi
 
     return {"status": "OK", "message": "Deleted room successfully", "alert": False}
 
-# not tested
+# works
 @router.post("/view hotel")
 def view_hotel(hotel_id: int, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:

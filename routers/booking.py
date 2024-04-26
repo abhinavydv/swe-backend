@@ -70,11 +70,11 @@ def edit_guest_profile(guest: booking.EditGuestProfile,customer = Depends(get_lo
 
 # works
 @router.post('/delete_guest')
-def delete_guest_profile(guest_id: int, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def delete_guest_profile(guest_id: booking.GuestId, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    g = db.query(GuestProfile).filter(and_(GuestProfile.guest_id == guest_id,GuestProfile.user_id == customer.user_id)).first()
+    g = db.query(GuestProfile).filter(and_(GuestProfile.guest_id == guest_id.guest_id,GuestProfile.user_id == customer.user_id)).first()
     if not g:
         return {"status": "Error", "message": "guest not found", "alert": True}
     
@@ -168,20 +168,13 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
 
 # works
 @router.post('/cancel')
-def cancel_booking(booking_id: int ,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def cancel_booking(booking_id: booking.BookingID ,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id,BookingTable.user_id == customer.user_id)).first()
+    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id.booking_id,BookingTable.user_id == customer.user_id)).first()
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
-    
-    rooms = db.query(BookingRoom).filter(BookingRoom.booking_id == booking_id).all()
-    if not rooms:
-        return {"status": "Error", "message": "rooms not found", "alert": True}
-    
-    for room in rooms:
-        db.delete(room)
     
     b.status = -1
     
@@ -191,17 +184,18 @@ def cancel_booking(booking_id: int ,customer = Depends(get_logged_customer), db:
 
 # works
 @router.post('/get_booking')
-def get_booking_details(booking_id: int, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def get_booking_details(booking_id: booking.BookingID, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
-    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id,BookingTable.user_id == customer.user_id)).first()
+    b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id.booking_id,BookingTable.user_id == customer.user_id)).first()
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
     
     return {"status": "OK", "message": "booking found", "alert": False, "booking": b}
 
-# need to test more once booking data is added.
+# need to test more once booking data is added. Need to change this a bit.
+# works in backend
 @router.get('/past_bookings')
 def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
@@ -209,9 +203,9 @@ def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Dep
     
     b = ( 
             db.query(BookingTable,ReviewTable,HotelTable)
-            .join(ReviewTable, BookingTable.booking_id == ReviewTable.booking_id)
             .join(HotelTable, BookingTable.hotel_id == HotelTable.hotel_id)
-            .filter(BookingTable.user_id == customer.user_id).all()
+            .join(ReviewTable, BookingTable.booking_id == ReviewTable.booking_id,full=True)
+            .filter(and_(BookingTable.user_id == customer.user_id, BookingTable.status == 2)).all()
         )
 
     if not b:
@@ -228,10 +222,10 @@ def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Dep
             hotel_location=h.address if h.address else "",
             check_in_date=str(book.from_date) if book.from_date else "",
             check_out_date=str(book.to_date) if book.to_date else "",
-            bill=book.bill if book.bill else 0,
-            reviewExists=True if rev.description is not None else False,
-            review=rev.description if rev.description is not None else "",
-            rating= rev.rating if rev.rating is not None else 0
+            bill=book.amount if book.amount else 0,
+            reviewExists=True if rev and rev.description else False,
+            review=rev.description if rev and rev.description else "",
+            rating= rev.rating if rev and rev.description else 0
         )
 
         bookings.append(book)

@@ -59,6 +59,12 @@ class Review(BaseModel):
     title: str
     description: str
     rating: int
+
+class BookingID(BaseModel):
+    booking_id: int
+
+class GuestId(BaseModel):
+    guest_id: int
     
 
     

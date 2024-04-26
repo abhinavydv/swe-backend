@@ -70,10 +70,6 @@ class SearchQuery(BaseModel):
     text: str
     date_range: str
 
-class GetHotel(BaseModel):
-    hotel_id: int
-    date_range: str
-
 class SearchQueryWithFilter(BaseModel):
     text: str
     date_range: str
