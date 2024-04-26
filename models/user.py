@@ -12,7 +12,8 @@ class User(BaseModel):
     nationality: str
     password: str
     role: str
-
+class OTP(BaseModel):
+    email: str
 class UserWithoutPassword(BaseModel):
     user_id: int
     first_name: str

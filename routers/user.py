@@ -12,6 +12,8 @@ from schema.wishlist import Wishlist
 import hashlib
 import secrets
 import os
+import numpy as np
+import smtplib, ssl
 
 # Email verification using OTP
 
@@ -57,6 +59,30 @@ def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get
     else:
         return {"status": "Error", "message": "Email or password incorrect", "alert": True}
 
+@router.post("/otp")
+def generate_otp(user: user.OTP):
+
+    otp = np.random.randint(100000,1000000)
+
+    port = 465  # For SSL
+    smtp_server = "smtp.gmail.com"
+    sender_email = os.getenv('EMAIL')
+    receiver_email = user.email 
+    password = os.getenv('PASSWORD')
+    message = f"""\
+    Subject: OTP Verification (Wanderlust.com)
+
+    Your One-Time Password is {otp}"""
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, password)
+        try:
+            server.sendmail(sender_email, receiver_email, message)
+        except Exception as e:
+            return {"status": "ERROR", "otp": ""}
+    
+    return {"status": "OK", "otp":str(otp)}
 
 @router.post("/register")
 def register(res: Response, user: user.User, db: Session = Depends(get_db)):
@@ -90,10 +116,11 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
         key='auth',
         value=cookie,
         max_age=60 * 60 * 24,
-        samesite="lax",
+        samesite="none",
+        secure=True,
     )
-    u.cookie = cookie
 
+    u.cookie = cookie
     db.add(u)
     db.commit()
     db.refresh(u)
