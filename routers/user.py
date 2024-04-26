@@ -103,13 +103,13 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 @router.get("/logged")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        return 
-        #return {"status": "Error", "message": "user not logged in", "alert": False}
+        # return 
+        return {"status": "Error", "message": "user not logged in", "alert": True}
 
     u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
-        return 
-        #return {"status": "Error", "message": "user not found", "alert": False}
+        # return 
+        return {"status": "Error", "message": "user not found", "alert": True}
     
     user_details = user.UserWithoutPassword(
         user_id=u.user_id,

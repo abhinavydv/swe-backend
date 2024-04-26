@@ -99,9 +99,11 @@ def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
 
 
 # need to test properly
-@router.post('/no_filter')
-def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text)).all()
+@router.post('/')
+def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer), db: Session = Depends(get_db)):
+    print("Herererererererere")
+    print(query)
+    h = db.query(HotelTable).filter(or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text )).all()
     hotel_obj = []
 
     if user is not None:
@@ -154,7 +156,8 @@ def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer),db:
 # need to test properly
 # works - need to test more once booking data is added
 @router.post('/get_hotel_page')
-def get_hotel_page(query: hotel.GetHotel, db: Session = Depends(get_db)):
+# def get_hotel_page(hotel_id: hotel.HotelId, date_range: hotel.DateRange,db: Session = Depends(get_db)):
+def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
     h = db.query(HotelTable).filter(query.hotel_id == HotelTable.hotel_id).first()
     
     if not h:
@@ -203,7 +206,8 @@ def get_hotel_page(query: hotel.GetHotel, db: Session = Depends(get_db)):
 
 #works
 @router.post('/add_to_wishlist')
-def add_to_wishlist(hotel_id:int,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def add_to_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
@@ -223,7 +227,8 @@ def add_to_wishlist(hotel_id:int,customer = Depends(get_logged_customer), db: Se
 
 #works
 @router.post('/delete_from_wishlist')
-def delete_from_wishlist(hotel_id:int, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+def delete_from_wishlist(hotel_id: hotel.HotelId, customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
+    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
@@ -244,6 +249,7 @@ def delete_from_wishlist(hotel_id:int, customer = Depends(get_logged_customer),d
 @router.get('/view_wishlist')
 def view_wishlist(customer = Depends(get_logged_customer),db: Session = Depends(get_db)):
     #w = db.query(Wishlist).filter(Wishlist.user_id == customer.user_id).all()
+    print("Herererererererere")
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
 
