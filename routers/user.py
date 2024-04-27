@@ -12,7 +12,7 @@ from schema.wishlist import Wishlist
 import hashlib
 import secrets
 import os
-import numpy as np
+import random
 import smtplib, ssl
 
 # Email verification using OTP
@@ -30,7 +30,6 @@ def generate_cookie(user_id, email_id):
 
 @router.post("/login")
 def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get_db)):
-    print(res, login_req)
 
     u = db.query(UserTable).filter(UserTable.email_id == login_req.email).first()
 
@@ -46,7 +45,7 @@ def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get
             key='auth',
             value=cookie,
             max_age=60 * 60 * 24,
-            samesite="none",
+            samesite="lax",
             secure=True
         )
         u.cookie = cookie
@@ -62,7 +61,7 @@ def login(res: Response, login_req: user.LoginRequest, db: Session = Depends(get
 @router.post("/otp")
 def generate_otp(user: user.OTP):
 
-    otp = np.random.randint(100000,1000000)
+    otp = random.randint(100000,1000000)
 
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
@@ -130,14 +129,12 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 @router.get("/logged")
 def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
     if auth is None:
-        # return 
-        return {"status": "Error", "message": "user not logged in", "alert": True}
+        return {"status": "Error", "message": "user not logged in", "alert": False}
 
     u = db.query(UserTable).filter(UserTable.cookie == auth).first()
     if not u:
-        # return 
-        return {"status": "Error", "message": "user not found", "alert": True}
-    
+        return {"status": "Error", "message": "user not found", "alert": False}
+
     user_details = user.UserWithoutPassword(
         user_id=u.user_id,
         first_name=u.first_name if u.first_name else "",
@@ -151,7 +148,6 @@ def get_logged_user(auth: str = Cookie(None), db: Session = Depends(get_db)):
         profile_img=u.profile_image_path if u.profile_image_path is not None else "",
         role=u.role
     )
-
     return {"status": "OK", "message": "user found", "alert": False, "user": user_details}
     # return user_details
 
@@ -313,13 +309,13 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
 def add_aadhar(aadhar_photo: UploadFile = File(...), partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     if not aadhar_photo:
         return {"status": "Error", "message": "file not found", "alert": True}
 
     # Create destination folder if it doesn't exist
     os.makedirs(UPLOAD_FOLDER + "/aadhar_photos", exist_ok=True)
-    
+
     file_path = os.path.join(UPLOAD_FOLDER + "/aadhar_photos", aadhar_photo.filename)
     with open(file_path, "wb") as buffer:
         buffer.write(aadhar_photo.file.read())
@@ -327,7 +323,7 @@ def add_aadhar(aadhar_photo: UploadFile = File(...), partner = Depends(get_logge
     image_path = create_file(aadhar_photo.filename, file_path)
 
     #os.remove(file_path)
-    
+
     stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(aadhar_photo_path = image_path)
     db.execute(stmt)
     db.commit()
@@ -353,7 +349,7 @@ def add_aadhar(hotel_license: UploadFile = File(...) , partner = Depends(get_log
     doc_path = create_file(hotel_license.filename, file_path)
 
     #os.remove(file_path)
-    
+
     stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(hotelling_license = doc_path)
     db.execute(stmt)
     db.commit()

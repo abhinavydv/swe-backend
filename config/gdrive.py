@@ -12,7 +12,12 @@ GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID")
 
 credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
-drive_service: Resource = build("drive", "v3", credentials=credentials)
+
+def create_service():
+    return build("drive", "v3", credentials=credentials)
+
+
+drive_service: Resource = create_service()
 
 
 def create_folder(folder_name, drive_service: Resource=drive_service):
@@ -24,7 +29,10 @@ def create_folder(folder_name, drive_service: Resource=drive_service):
 
     return folder.get('id')
 
-def create_file(file_name, local_file, folder_id=GDRIVE_FOLDER_ID, drive_service=drive_service):
+def create_file(file_name, local_file, folder_id=GDRIVE_FOLDER_ID, drive_service=None):
+    if not drive_service:
+        drive_service = create_service()
+
     file_metadata = {
         'name': file_name,
         'parents': [folder_id],
@@ -45,7 +53,10 @@ def create_file(file_name, local_file, folder_id=GDRIVE_FOLDER_ID, drive_service
 
     return download_url
 
-def get_file(file_id, drive_service=drive_service):
+def get_file(file_id, drive_service=None):
+    if not drive_service:
+        drive_service = create_service()
+
     content = drive_service.files().get_media(fileId=file_id).execute()
     return content
 
