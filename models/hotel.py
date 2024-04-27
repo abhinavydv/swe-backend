@@ -8,24 +8,27 @@ class RoomAmenities(BaseModel):
 
 class Room(BaseModel):
     room_type: int
-    number_of_rooms: int
+    total_rooms: int
     bed_type: str
     max_occupancy: int
     price: float
-    amenities: List[RoomAmenities]
+    room_amenities: int
 
 class Hotel(BaseModel):
     hotel_name: str
     description: str
+    property_paper: str
     pincode: str
     locality: str
     address: str
     city: str
     state: str
     country: str
-    amenities: str
+    amenities: int
     tag_list: str
     rooms: List[Room]
+    property_images: List[str]
+
 
 class PropertyPaper(BaseModel):
     hotel_id: int

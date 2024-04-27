@@ -57,6 +57,7 @@ CREATE TABLE rooms (
 	price FLOAT NOT NULL,
 	number_of_available_rooms INTEGER,
     total_rooms INTEGER,
+    amenities INTEGER,
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE  -- Foreign Key
 	
 );

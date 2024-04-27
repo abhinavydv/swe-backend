@@ -102,7 +102,7 @@ def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
 # need to test properly
 @router.post('/')
 def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer), db: Session = Depends(get_db)):
-    h = db.query(HotelTable).filter(or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text )).all()
+    h = db.query(HotelTable).filter(or_(func.lower(HotelTable.hotel_name).contains(query.text.lower()) , func.lower(HotelTable.city).contains(query.text.lower()), func.lower(HotelTable.locality).contains(query.text.lower()))).all()
     hotel_obj = []
 
     if user is not None:
@@ -150,11 +150,11 @@ def get_hotels(query: hotel.SearchQuery, user = Depends(get_logged_customer), db
 
 @router.post('/filters')
 def get_hotels_with_filters(query: hotel.SearchQueryWithFilter, user = Depends(get_logged_customer),db: Session = Depends(get_db)):
-    filter_value = int(query.filters, 2)
+    #filter_value = int(query.filters, 2)
     
     h = db.query(HotelTable).filter(
-        or_(HotelTable.city == query.text, HotelTable.hotel_name == query.text, HotelTable.locality == query.text)).filter(
-            (HotelTable.amenities.op('&')(filter_value)) == filter_value).all()
+        or_(func.lower(HotelTable.hotel_name).contains(query.text.lower()) , func.lower(HotelTable.city).contains(query.text.lower()), func.lower(HotelTable.locality).contains(query.text.lower()))).filter(
+            (HotelTable.amenities.op('&')(query.filters)) == query.filters).all()
     hotel_obj = []
     if user is not None:
         w = db.query(Wishlist).filter(Wishlist.user_id == user.user_id).all()
@@ -182,9 +182,9 @@ def get_hotels_with_filters(query: hotel.SearchQueryWithFilter, user = Depends(g
 
         obj = hotel.HotelSearch(
             hotel_id = hotel_row.hotel_id,
-            address = hotel_row.address,
-            amenities = str(hotel_row.amenities),
-            hotel_name = hotel_row.hotel_name,
+            address = hotel_row.address if hotel_row.address else "",
+            amenities = str(hotel_row.amenities) if hotel_row.amenities else "",
+            hotel_name = hotel_row.hotel_name if hotel.hotel_name else "",
             lowest_price = lowest_price if lowest_price is not None else 0,
             rating = rating if rating is not None else 0,
             img_path = photo[0] if photo is not None else "",  
@@ -225,7 +225,7 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
         return {"status": "Error", "message": "No rooms available", "alert": True}
 
     for room in avail_rooms:
-        a = db.query(RoomAmenity).filter(RoomAmenity.room_id == room.room_id).all()
+        #a = db.query(RoomAmenity).filter(RoomAmenity.room_id == room.room_id).all()
 
         r = hotel.Room(
             bed_type = room.bed_type if room.bed_type else "",
@@ -233,7 +233,7 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
             max_occupancy = room.max_occupancy if room.max_occupancy else 0,
             price = room.price if room.price else 0,
             room_type = room.room_type,
-            amenities = convert_room_amenities(a) if a is not None else []
+            room_amenities = room.amenities if room.amenities else 0
         )
         
         available_rooms.append(r)
