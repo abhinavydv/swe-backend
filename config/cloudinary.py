@@ -7,7 +7,7 @@ from cloudinary import CloudinaryResource
 
 
 def upload_file(file_path: str, public_id=None):
-    res = uploader.upload(file_path)
+    res = uploader.upload(file_path, flags=["attachment"])
     return res["secure_url"]
 
 

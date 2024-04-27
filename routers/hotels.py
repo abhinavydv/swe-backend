@@ -86,18 +86,18 @@ def add_hotel(hotel: hotel.Hotel, owner = Depends(get_logged_partner),db: Sessio
 def add_property_paper(property_paper: hotel.PropertyPaper,partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == property_paper.hotel_id ,HotelTable.owner_id == partner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
+
     if not property_paper.property_paper:
         return {"status": "Error", "message": "file not found", "alert": True}
 
     # Create destination folder if it doesn't exist
     os.makedirs(UPLOAD_FOLDER + "/propert_papers", exist_ok=True)
-    
+
     file_path = os.path.join(UPLOAD_FOLDER + "/property_papers", property_paper.property_paper.filename)
     with open(file_path, "wb") as buffer:
         buffer.write(property_paper.property_paper.file.read())

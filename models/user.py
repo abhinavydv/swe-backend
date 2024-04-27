@@ -35,6 +35,7 @@ class Profile(BaseModel):
     phone_number: str
     gender: str
     nationality: str
+    profile_img: str
     
 class LoginRequest(BaseModel):
     email: str
@@ -43,6 +44,8 @@ class LoginRequest(BaseModel):
 class KYP(BaseModel):
     pan_number: str
     aadhar_number: str
+    aadhar_photo_path: str
+    hotelling_license: str
     account_number: str
     ifsc_code: str
 

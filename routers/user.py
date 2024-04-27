@@ -120,7 +120,21 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
     )
 
     u.cookie = cookie
+
     db.add(u)
+
+    if user.role == "partner":
+        k = KYPTable(
+            user_id = u.user_id,
+            pan_number = "",
+            aadhar_number = "",
+            aadhar_photo_path = "",
+            hotelling_license = "",
+            account_number = "",
+            ifsc_code = ""
+        )
+        db.add(k)
+
     db.commit()
     db.refresh(u)
 
@@ -248,6 +262,7 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Sess
         phone_number = profile.phone_number,
         gender = profile.gender,
         nationality = profile.nationality,
+        profile_image_path = profile.profile_img
     )
 
     db.execute(stmt)
@@ -289,18 +304,19 @@ def add_profile_photo(photo: UploadFile = File(...), user = Depends(get_logged_u
 def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
-    k = KYPTable(
-        user_id = partner.user_id,
+
+    update_stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(
         pan_number = kyp.pan_number,
         aadhar_number = kyp.aadhar_number,
+        aadhar_photo_path = kyp.aadhar_photo_path,
+        hotelling_license = kyp.hotelling_license,
         account_number = kyp.account_number,
         ifsc_code = kyp.ifsc_code
     )
 
-    db.add(k)
+    db.execute(update_stmt)
+    # db.add(k)
     db.commit()
-    db.refresh(k)
 
     return {"status": "OK", "message": "KYP is successfull", "alert": False}
 

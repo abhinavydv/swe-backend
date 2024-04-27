@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-# from config.gdrive import create_file, delete_file
+from config.gdrive import create_file as gdrive_create_file, delete_file as gdrive_delete_file
 from config.cloudinary import upload_file, delete_file
 from fastapi import UploadFile,File
 from models.misc import FileID
@@ -28,11 +28,14 @@ def upload_file_api(file: UploadFile=File(), user=Depends(get_logged_user), db: 
         
         user = user["user"]
 
-        tmp = tempfile.mktemp()
+        tmp = tempfile.mktemp() + file.filename
         with open(tmp, "wb") as buffer:
             buffer.write(file.file.read())
 
-        file_url = upload_file(tmp)
+        if tmp.endswith(".pdf"):
+            file_url = gdrive_create_file(tmp, tmp)
+        else:
+            file_url = upload_file(tmp)
 
         os.remove(tmp)
 
@@ -55,11 +58,13 @@ def delete_file_api(file_id: FileID, user=Depends(get_logged_user), db: Session 
         file = db.query(UploadedFile).filter(UploadedFile.file_id == file_id.file_id).first()
         if not file:
             return {"status": "Error", "message": "file not found", "alert": True}
-
         if file.owner_id != user.user_id:
             return {"status": "Error", "message": "you are not the owner of this file", "alert": True}
 
-        delete_file(file_id.file_id)
+        if "drive.google.com" in file_id.file_id:
+            gdrive_delete_file(file_id.file_id.split("=")[-1])
+        else:
+            delete_file(file_id.file_id)
 
         stmt = delete(UploadedFile).where(UploadedFile.file_id == file_id.file_id)
         db.execute(stmt)
