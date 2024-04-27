@@ -12,6 +12,16 @@ class User(BaseModel):
     nationality: str
     password: str
     role: str
+class Guest(BaseModel):
+    name: str
+    age: str
+    gender: str
+
+class GuestID(BaseModel):
+    id: int
+    name: str
+    age: str
+    gender: str
 class OTP(BaseModel):
     email: str
 class UserWithoutPassword(BaseModel):

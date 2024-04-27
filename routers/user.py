@@ -7,6 +7,7 @@ from config.gdrive import create_file,delete_file,get_file
 from models import user
 from schema.user import User as UserTable
 from schema.kyp import KYP as KYPTable
+from schema.guest_profile import GuestProfile as GuestProfileTable
 from schema.hotel import Hotel as HotelTable
 from schema.wishlist import Wishlist
 import hashlib
@@ -14,6 +15,7 @@ import secrets
 import os
 import random
 import smtplib, ssl
+from email.message import EmailMessage
 
 # Email verification using OTP
 
@@ -68,19 +70,22 @@ def generate_otp(user: user.OTP):
     sender_email = os.getenv('EMAIL')
     receiver_email = user.email 
     password = os.getenv('PASSWORD')
-    message = f"""\
-    Subject: OTP Verification (Wanderlust.com)
+    msg = EmailMessage()
+    msg.set_content(f"Your One-Time Password is {otp}")
 
-    Your One-Time Password is {otp}"""
+    msg['Subject'] = 'OTP Verification (Wanderlust.com)'
+    msg['From'] = os.getenv('EMAIL')
+    msg['To'] = receiver_email
+
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
         server.login(sender_email, password)
         try:
-            server.sendmail(sender_email, receiver_email, message)
+            server.send_message(msg)
         except Exception as e:
+            print(e)
             return {"status": "ERROR", "otp": ""}
-    
     return {"status": "OK", "otp":str(otp)}
 
 @router.post("/register")
@@ -114,7 +119,7 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
     res.set_cookie(
         key='auth',
         value=cookie,
-        max_age=60 * 60 * 24,
+        max_age=60 * 60 * 24 * 1000,
         samesite="none",
         secure=True,
     )
@@ -417,7 +422,4 @@ def delete_account(user = Depends(get_logged_user),db: Session = Depends(get_db)
     db.commit()
 
     return {"status": "OK", "message": "account deleted", "alert": False}
-
-
-    
 
