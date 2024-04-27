@@ -94,9 +94,9 @@ def get_available_rooms(hotel_id,start_date,end_date,db):
 
     return avail_rooms
 
-# Function to convert a list of SQLAlchemy RoomAmenity objects to a list of Pydantic RoomAmenities objects
-def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
-    return [hotel.RoomAmenities(**amenity.__dict__) for amenity in amenities]
+# # Function to convert a list of SQLAlchemy RoomAmenity objects to a list of Pydantic RoomAmenities objects
+# def convert_room_amenities(amenities: list) -> list[hotel.RoomAmenities]:
+#     return [hotel.RoomAmenities(**amenity.__dict__) for amenity in amenities]
 
 
 # need to test properly
@@ -229,7 +229,7 @@ def get_hotel_page(query: hotel.HotelPageQuery,db: Session = Depends(get_db)):
 
         r = hotel.Room(
             bed_type = room.bed_type if room.bed_type else "",
-            number_of_rooms=room.number_of_available_rooms,
+            total_rooms=room.number_of_available_rooms,
             max_occupancy = room.max_occupancy if room.max_occupancy else 0,
             price = room.price if room.price else 0,
             room_type = room.room_type,
