@@ -253,7 +253,7 @@ def edit_profile(profile: user.Profile, user = Depends(get_logged_user),db: Sess
         return {"status": "Error", "message": "user not logged in", "alert": True}
     
     user = user["user"]
-    
+
     stmt = update(UserTable).where(UserTable.user_id == user.user_id).values(
         first_name = profile.first_name,
         last_name = profile.last_name,
@@ -305,18 +305,33 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
 
-    update_stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(
-        pan_number = kyp.pan_number,
-        aadhar_number = kyp.aadhar_number,
-        aadhar_photo_path = kyp.aadhar_photo_path,
-        hotelling_license = kyp.hotelling_license,
-        account_number = kyp.account_number,
-        ifsc_code = kyp.ifsc_code
-    )
+    kyp_db = db.query(KYPTable).filter(KYPTable.user_id == partner.user_id).one_or_none()
 
-    db.execute(update_stmt)
-    # db.add(k)
-    db.commit()
+    if not kyp_db:
+        kyp_new = KYPTable(
+            user_id = partner.user_id,
+            pan_number = kyp.pan_number,
+            aadhar_number = kyp.aadhar_number,
+            aadhar_photo_path = kyp.aadhar_photo_path,
+            hotelling_license = kyp.hotelling_license,
+            account_number = kyp.account_number,
+            ifsc_code = kyp.ifsc_code
+        )
+        db.add(kyp_new)
+        db.commit()
+        db.refresh(kyp_new)
+    else:
+        update_stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(
+            pan_number = kyp.pan_number,
+            aadhar_number = kyp.aadhar_number,
+            aadhar_photo_path = kyp.aadhar_photo_path,
+            hotelling_license = kyp.hotelling_license,
+            account_number = kyp.account_number,
+            ifsc_code = kyp.ifsc_code
+        )
+
+        db.execute(update_stmt)
+        db.commit()
 
     return {"status": "OK", "message": "KYP is successfull", "alert": False}
 

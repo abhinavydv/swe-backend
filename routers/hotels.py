@@ -1,3 +1,4 @@
+import traceback
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
 from sqlalchemy import update,or_,and_
@@ -23,63 +24,66 @@ UPLOAD_FOLDER = 'uploads'
 # works
 @router.post("/add_hotel")
 def add_hotel(hotel: hotel.Hotel, owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
-    # Adding photos
-    if owner is None:
-        return {"status": "Error", "message": "user not logged in", "alert": True}
+    try:
+        if owner is None:
+            return {"status": "Error", "message": "user not logged in", "alert": True}
 
-    h = HotelTable(
-        owner_id = owner.user_id,
-        hotel_name = hotel.hotel_name,
-        description = hotel.description,
-        property_paper_path = hotel.property_paper,
-        pincode = hotel.pincode,
-        locality = hotel.locality,
-        address = hotel.address,
-        city = hotel.city,
-        state = hotel.state,
-        country = hotel.country,
-        amenities = hotel.amenities,
-        tag_list = hotel.tag_list
-    )
-
-    db.add(h)
-    db.commit()
-
-    hotel_id = h.hotel_id
-    
-    for room in hotel.rooms:
-        r = RoomTable(
-            hotel_id = hotel_id,
-            room_type = room.room_type,
-            bed_type = room.bed_type,
-            max_occupancy = room.max_occupancy,
-            number_of_available_rooms = room.total_rooms,
-            total_rooms = room.total_rooms,
-            price = room.price,
-            amenities = room.room_amenities
+        h = HotelTable(
+            owner_id = owner.user_id,
+            hotel_name = hotel.hotel_name,
+            description = hotel.description,
+            property_paper_path = hotel.property_paper,
+            pincode = hotel.pincode,
+            locality = hotel.locality,
+            address = hotel.address,
+            city = hotel.city,
+            state = hotel.state,
+            country = hotel.country,
+            amenities = hotel.amenities,
+            tag_list = hotel.tag_list
         )
 
-        db.add(r)
+        db.add(h)
         db.commit()
-        # room_id = r.room_id
-        # for amenity in room.room_amenities:
-        #     a = RoomAmenity(
-        #         room_id = room_id,
-        #         amenity = amenity.amenity,
-        #         quality = amenity.quality
-        #     )
-        #     db.add(a)
-    
-    for photo in hotel.property_images:
-        p = PhotoTable(
-            hotel_id = hotel_id,
-            photo_url = photo
-        )
-        db.add(p)
-    
-    db.commit()
 
-    return {"status": "OK", "message": "Added hotel successfully", "alert": False}
+        hotel_id = h.hotel_id
+        
+        for room in hotel.rooms:
+            r = RoomTable(
+                hotel_id = hotel_id,
+                room_type = room.room_type,
+                bed_type = room.bed_type,
+                max_occupancy = room.max_occupancy,
+                number_of_available_rooms = room.total_rooms,
+                total_rooms = room.total_rooms,
+                price = room.price,
+                amenities = room.room_amenities
+            )
+
+            db.add(r)
+            db.commit()
+            # room_id = r.room_id
+            # for amenity in room.room_amenities:
+            #     a = RoomAmenity(
+            #         room_id = room_id,
+            #         amenity = amenity.amenity,
+            #         quality = amenity.quality
+            #     )
+            #     db.add(a)
+        
+        for photo in hotel.property_images:
+            p = PhotoTable(
+                hotel_id = hotel_id,
+                photo_url = photo
+            )
+            db.add(p)
+        
+        db.commit()
+
+        return {"status": "OK", "message": "Added hotel successfully", "alert": False}
+    except Exception as e:
+        traceback.print_exc()
+        return {"status": "Error", "message": str(e), "alert": True}
 
 # not tested - not used
 @router.post('/property_paper')
