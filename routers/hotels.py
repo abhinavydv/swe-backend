@@ -1,7 +1,7 @@
 import traceback
 from fastapi import APIRouter, Depends, Response, Cookie
 from sqlalchemy.orm import Session
-from sqlalchemy import update,or_,and_
+from sqlalchemy import delete, update,or_,and_
 from config.db import get_db
 from models import hotel
 from schema.hotel import Hotel as HotelTable
@@ -194,7 +194,7 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel,owner = Depends(get_logged_partner),
                 amenities = room.room_amenities
             )
             db.add(r) 
-            
+
             # for amenity in room.amenities:
             #     a = RoomAmenity(
             #         room_id = r.room_id,
@@ -218,6 +218,25 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel,owner = Depends(get_logged_partner),
             #         quality = amenity.quality
             #     )
             #     db.execute(stmt)
+
+    images_in_db = list(map(lambda img: img.photo_url, db.query(PhotoTable).filter(PhotoTable.hotel_id == hotel_id).all()))
+    print(images_in_db, hotel.property_images)
+    for image_url in hotel.property_images:
+        if image_url not in images_in_db:
+            img = PhotoTable(
+                hotel_id = hotel_id,
+                photo_url = image_url
+            )
+            db.add(img)
+
+    for image_url in images_in_db:
+        if image_url not in hotel.property_images:
+            print(image_url)
+            stmt = delete(PhotoTable).where(
+                PhotoTable.photo_url == image_url,
+                PhotoTable.hotel_id == hotel_id
+            )
+            db.execute(stmt)
 
     db.commit()
 
