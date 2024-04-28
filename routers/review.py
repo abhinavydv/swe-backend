@@ -8,6 +8,7 @@ from schema.booking import Booking as BookingTable
 from schema.user import User as UserTable
 from schema.review import Review as ReviewTable
 from routers.user import get_logged_partner,get_logged_customer
+from datetime import date
 
 router = APIRouter(
     prefix="/review",
@@ -23,7 +24,8 @@ def submit_review(review: booking.Review, customer = Depends(get_logged_customer
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
     
-    if b.status != 2:
+    today = date.today().strftime("%Y-%m-%d")
+    if today <= b.to_date.strftime("%Y-%m-%d"):
         return {"status": "Error", "message": "Stay not completed", "alert": True}
     
     rev = ReviewTable(
