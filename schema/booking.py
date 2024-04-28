@@ -15,4 +15,3 @@ class Booking(db.Base):
     status = Column(Integer)   # -1 - cancel, 0 - booked, 1 - staying, 2 - completed
     transaction_id  = Column(Integer)
 
-    

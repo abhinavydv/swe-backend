@@ -45,7 +45,8 @@ class PastBooking(BaseModel):
     reviewExists: bool
     review: str
     rating: int
-    
+    status: int
+
 class BookingDetails(BaseModel):
     hotel_id: int
     date_range: str

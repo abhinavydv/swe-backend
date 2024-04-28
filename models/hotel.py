@@ -17,7 +17,7 @@ class Room(BaseModel):
 class Hotel(BaseModel):
     hotel_name: str
     description: str
-    property_paper: str
+    property_paper_path: str
     pincode: str
     locality: str
     address: str

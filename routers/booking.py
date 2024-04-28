@@ -73,11 +73,11 @@ def edit_guest_profile(guest: booking.EditGuestProfile,customer = Depends(get_lo
 def delete_guest_profile(guest_id: booking.GuestId, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     g = db.query(GuestProfile).filter(and_(GuestProfile.guest_id == guest_id.guest_id,GuestProfile.user_id == customer.user_id)).first()
     if not g:
         return {"status": "Error", "message": "guest not found", "alert": True}
-    
+
     db.delete(g)
     db.commit()
 
@@ -88,12 +88,12 @@ def delete_guest_profile(guest_id: booking.GuestId, customer = Depends(get_logge
 def get_guests(customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
    if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-   
+
    g = db.query(GuestProfile).filter(GuestProfile.user_id == customer.user_id).all()
 
    if not g:
        return {"status": "Error", "message": "no guests found", "alert": True}
-   
+
    return {"status": "OK", "message": "Guests found", "alert": False, "guests": g}
 
 
@@ -116,18 +116,17 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
     end_date = datetime.strptime(dates[1],"%Y-%m-%d")
 
     available_rooms = get_available_rooms(details.hotel_id,start_date,end_date,db)
-    
+
     for room in details.rooms:
         a_room = get_available_room_by_type(available_rooms,room.room_type)
         if not a_room:
-            return {"status": "Error", "message": "room type not found", "alert": True}
+            return {"status": "Error", "message": "No more rooms available", "alert": True}
         
         if a_room.number_of_available_rooms < room.number_of_rooms:
             return {"status": "Error", "message": "rooms not available", "alert": True}
 
-        
         rooms.append(a_room.room_id)
-    
+
     b = BookingTable(
         user_id = customer.user_id,
         hotel_id = details.hotel_id,
@@ -171,13 +170,13 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
 def cancel_booking(booking_id: booking.BookingID ,customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     b = db.query(BookingTable).filter(and_(BookingTable.booking_id == booking_id.booking_id,BookingTable.user_id == customer.user_id)).first()
     if not b:
         return {"status": "Error", "message": "booking not found", "alert": True}
-    
+
     b.status = -1
-    
+
     db.commit()
 
     return {"status": "OK", "message": "booking cancellation successful", "alert": False}
@@ -200,21 +199,21 @@ def get_booking_details(booking_id: booking.BookingID, customer = Depends(get_lo
 def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     b = ( 
             db.query(BookingTable,ReviewTable,HotelTable)
             .join(HotelTable, BookingTable.hotel_id == HotelTable.hotel_id)
             .join(ReviewTable, BookingTable.booking_id == ReviewTable.booking_id,full=True)
-            .filter(and_(BookingTable.user_id == customer.user_id, BookingTable.status == 2)).all()
+            .filter(and_(BookingTable.user_id == customer.user_id)).all()
         )
 
     if not b:
         return {"status": "Error", "message": "no past bookings", "alert": True}
-    
+
     bookings = []
 
     for book,rev,h in b:
-      
+
         book = booking.PastBooking(
             booking_id=book.booking_id,
             hotel_id=h.hotel_id,
@@ -225,12 +224,13 @@ def get_past_bookings(customer = Depends(get_logged_customer), db: Session = Dep
             bill=book.amount if book.amount else 0,
             reviewExists=True if rev and rev.description else False,
             review=rev.description if rev and rev.description else "",
-            rating= rev.rating if rev and rev.description else 0
+            rating= rev.rating if rev and rev.description else 0,
+            status=book.status if book.status else 0
         )
 
         bookings.append(book)
 
-    
+
     return {"status": "OK", "message": "past bookings found", "alert": False, "past_bookings": bookings}
 
 

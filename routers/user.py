@@ -128,17 +128,17 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 
     db.add(u)
 
-    if user.role == "partner":
-        k = KYPTable(
-            user_id = u.user_id,
-            pan_number = "",
-            aadhar_number = "",
-            aadhar_photo_path = "",
-            hotelling_license = "",
-            account_number = "",
-            ifsc_code = ""
-        )
-        db.add(k)
+    # if user.role == "partner":
+    #     k = KYPTable(
+    #         user_id = u.user_id,
+    #         pan_number = "",
+    #         aadhar_number = "",
+    #         aadhar_photo_path = "",
+    #         hotelling_license = "",
+    #         account_number = "",
+    #         ifsc_code = ""
+    #     )
+    #     db.add(k)
 
     db.commit()
     db.refresh(u)
@@ -422,4 +422,3 @@ def delete_account(user = Depends(get_logged_user),db: Session = Depends(get_db)
     db.commit()
 
     return {"status": "OK", "message": "account deleted", "alert": False}
-

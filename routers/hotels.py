@@ -32,7 +32,7 @@ def add_hotel(hotel: hotel.Hotel, owner = Depends(get_logged_partner),db: Sessio
             owner_id = owner.user_id,
             hotel_name = hotel.hotel_name,
             description = hotel.description,
-            property_paper_path = hotel.property_paper,
+            property_paper_path = hotel.property_paper_path,
             pincode = hotel.pincode,
             locality = hotel.locality,
             address = hotel.address,
@@ -154,18 +154,18 @@ def add_hotel_photos(photos: hotel.HotelPhotos,partner = Depends(get_logged_part
 
 
 # not tested
-@router.post('/edit_hotel')
+@router.post('/edit_hotel/{hotel_id}')
 def edit_hotel(hotel_id, hotel: hotel.Hotel,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     # Adding photos
     # Tag List parsing
     if owner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
+
     # Update the hotel information with the new data
     h.hotel_name = hotel.hotel_name
     h.description = hotel.description
@@ -228,31 +228,31 @@ def edit_hotel(hotel_id, hotel: hotel.Hotel,owner = Depends(get_logged_partner),
 def delete_room(hotel_id,room_type,owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if owner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
+
     if not db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first():
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
+
     r = db.query(RoomTable).filter(and_(RoomTable.hotel_id == hotel_id ,RoomTable.room_type==room_type)).first()
 
     if not r:
         return {"status": "Error", "message": "room type not found", "alert": True}
-    
+
     db.delete(r)
     db.commit()
 
     return {"status": "OK", "message": "Deleted room successfully", "alert": False}
 
 # works
-@router.post("/view hotel")
-def view_hotel(hotel_id: int, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+@router.post("/view_hotel")
+def view_hotel(hotel_id: hotel.HotelId, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == partner.user_id)).first()
+    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id.hotel_id ,HotelTable.owner_id == partner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
-    return h
+
+    return {"status": "OK", "message": "Listing found", "alert": False, "listings": h}
 
 # not tested
 @router.get('/view_listings')
@@ -263,33 +263,36 @@ def view_listings(partner = Depends(get_logged_partner),db: Session = Depends(ge
 
     if not h:
         return {"status": "Error", "message": "hotels not found", "alert": True}
-    
-    return h
+
+    return {"status": "OK", "message": "Listing found", "alert": False, "listings": h}
 
 # works
 @router.post('/delete_hotel')
-def delete_hotel(hotel_id: int, owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
+def delete_hotel(hotel_id: hotel.HotelId, owner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if owner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    
-    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id ,HotelTable.owner_id == owner.user_id)).first()
+
+    h = db.query(HotelTable).filter(and_(HotelTable.hotel_id == hotel_id.hotel_id ,HotelTable.owner_id == owner.user_id)).first()
 
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
+
     db.delete(h)
 
     db.commit()
 
     return {"status": "OK", "message": "Deleted room successfully", "alert": False}
-            
-    
-    
 
 
+@router.post("/get_rooms")
+def get_rooms(hotel_id: hotel.HotelId, db: Session = Depends(get_db)):
+    rooms = db.query(RoomTable).filter(RoomTable.hotel_id == hotel_id.hotel_id).all()
 
-    
+    return {"status": "OK", "message": "Rooms found", "alert": False, "rooms": rooms}
 
 
+@router.post("/get_images")
+def get_images(hotel_id: hotel.HotelId, db: Session = Depends(get_db)):
+    photos = db.query(PhotoTable).filter(PhotoTable.hotel_id == hotel_id.hotel_id).all()
 
-    
+    return {"status": "OK", "message": "Images found", "alert": False, "images": photos}
