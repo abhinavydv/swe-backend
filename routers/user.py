@@ -128,6 +128,7 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
 
     db.add(u)
 
+<<<<<<< Updated upstream
     # if user.role == "partner":
     #     k = KYPTable(
     #         user_id = u.user_id,
@@ -139,6 +140,19 @@ def register(res: Response, user: user.User, db: Session = Depends(get_db)):
     #         ifsc_code = ""
     #     )
     #     db.add(k)
+=======
+    if user.role == "partner":
+        k = KYPTable(
+            user_id = u.user_id,
+            pan_number = "",
+            aadhar_number = "",
+            aadhar_photo_path = "",
+            hotelling_license = "",
+            account_number = "",
+            ifsc_code = ""
+        )
+        db.add(k)
+>>>>>>> Stashed changes
 
     db.commit()
     db.refresh(u)
@@ -309,6 +323,7 @@ def add_profile_photo(photo: UploadFile = File(...), user = Depends(get_logged_u
 def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = Depends(get_db)):
     if partner is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
+<<<<<<< Updated upstream
 
     kyp_db = db.query(KYPTable).filter(KYPTable.user_id == partner.user_id).one_or_none()
 
@@ -337,6 +352,21 @@ def add_kyp(kyp: user.KYP, partner = Depends(get_logged_partner),db: Session = D
 
         db.execute(update_stmt)
         db.commit()
+=======
+
+    update_stmt = update(KYPTable).where(KYPTable.user_id == partner.user_id).values(
+        pan_number = kyp.pan_number,
+        aadhar_number = kyp.aadhar_number,
+        aadhar_photo_path = kyp.aadhar_photo_path,
+        hotelling_license = kyp.hotelling_license,
+        account_number = kyp.account_number,
+        ifsc_code = kyp.ifsc_code
+    )
+
+    db.execute(update_stmt)
+    # db.add(k)
+    db.commit()
+>>>>>>> Stashed changes
 
     return {"status": "OK", "message": "KYP is successfull", "alert": False}
 
