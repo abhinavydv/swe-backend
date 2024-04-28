@@ -107,7 +107,7 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
     h = db.query(HotelTable).filter(details.hotel_id == HotelTable.hotel_id).first()
     if not h:
         return {"status": "Error", "message": "hotel not found", "alert": True}
-    
+
     rooms = []
 
     dates = details.date_range.split('__')
@@ -116,9 +116,11 @@ def book_hotel(details: booking.BookingDetails, customer = Depends(get_logged_cu
     end_date = datetime.strptime(dates[1],"%Y-%m-%d")
 
     available_rooms = get_available_rooms(details.hotel_id,start_date,end_date,db)
+    print(available_rooms)
 
     for room in details.rooms:
         a_room = get_available_room_by_type(available_rooms,room.room_type)
+        print(a_room, room.room_type)
         if not a_room:
             return {"status": "Error", "message": "No more rooms available", "alert": True}
         
