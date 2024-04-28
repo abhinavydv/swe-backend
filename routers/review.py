@@ -43,10 +43,10 @@ def submit_review(review: booking.Review, customer = Depends(get_logged_customer
     return {"status": "OK", "message": "review submitted successfully", "alert": False}
 
 @router.post('/delete_review')
-def delete_review(review_id, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
+def delete_review(booking_id: booking.BookingID, customer = Depends(get_logged_customer), db: Session = Depends(get_db)):
     if customer is None:
         return {"status": "Error", "message": "user not logged in", "alert": True}
-    rev = db.query(ReviewTable).filter(ReviewTable.review_id == review_id and ReviewTable.user_id == customer.user_id).first()
+    rev = db.query(ReviewTable).filter(ReviewTable.booking_id == booking_id.booking_id and ReviewTable.user_id == customer.user_id).first()
 
     if not rev:
         return {"status": "Error", "message": "review not found", "alert": True}
